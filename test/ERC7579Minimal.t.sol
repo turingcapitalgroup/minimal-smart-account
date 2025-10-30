@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import {Test} from "forge-std/Test.sol";
 import {IERC7579Minimal, Execution, ModeCode} from "../src/interfaces/IERC7579Minimal.sol";
 import {ERC7579Minimal, ExecutionLib, IRegistry} from "../src/ERC7579Minimal.sol";
-import {ModeLib, CALLTYPE_BATCH, EXECTYPE_DEFAULT, EXECTYPE_TRY, MODE_DEFAULT, ModePayload} from "../src/libraries/ModeLib.sol";
+import {ModeLib, CALLTYPE_BATCH, EXECTYPE_TRY, MODE_DEFAULT, ModePayload} from "../src/libraries/ModeLib.sol";
 
 contract MockRegistry is IRegistry {
     bool public shouldRevert;
