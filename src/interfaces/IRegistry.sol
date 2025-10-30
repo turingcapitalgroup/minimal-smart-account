@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
 interface IRegistry {
     /// @notice Check if an adapter is authorized to call a specific function on a target
     /// @param target The target contract address
