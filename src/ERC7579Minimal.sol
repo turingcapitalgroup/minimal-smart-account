@@ -106,7 +106,7 @@ contract ERC7579Minimal is IERC7579Minimal, Initializable, UUPSUpgradeable, Owna
             // TRY EXEC & BATCH CALL
             if (_callType == CALLTYPE_BATCH) {
                 Execution[] calldata _executions = executionCalldata.decodeBatch();
-                _tryExec(_executions);
+                return _tryExec(_executions);
             }
             // handle unsupported calltype
             else {
