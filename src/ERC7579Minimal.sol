@@ -19,7 +19,8 @@ import { IRegistry } from "./interfaces/IRegistry.sol";
  * @title ERC7579Minimal
  * @notice Minimal implementation of ERC-7579 modular smart account standard
  * @dev This contract provides a minimal ERC-7579 account with batch execution capabilities,
- *      registry-based authorization, UUPS upgradeability, and role-based access control
+ * registry-based authorization, UUPS upgradeability, and role-based access control
+ * Now uses the ERC-7201 namespaced storage pattern.
  */
 contract ERC7579Minimal is IERC7579Minimal, Initializable, UUPSUpgradeable, OwnableRoles {
     using ExecutionLib for bytes;
@@ -36,17 +37,33 @@ contract ERC7579Minimal is IERC7579Minimal, Initializable, UUPSUpgradeable, Owna
     uint256 internal constant EXECUTOR_ROLE = _ROLE_1;
 
     /* ///////////////////////////////////////////////////////////////
-                              VARIABLES
+                                STORAGE
     ///////////////////////////////////////////////////////////////*/
 
-    /// @notice Registry contract for authorizing adapter calls
-    IRegistry internal _registry;
+    /// @notice Core storage structure for ERC7579Minimal using ERC-7201 namespaced storage pattern
+    /// @custom:storage-location erc7201:erc7579.storage.MinimalAccount
+    struct MinimalAccountStorage {
+        /// @notice Registry contract for authorizing adapter calls
+        IRegistry registry;
+        /// @notice Sequential nonce for tracking executed transactions
+        uint256 nonce;
+        /// @notice Unique identifier for this account implementation
+        string accountId;
+    }
 
-    /// @notice Sequential nonce for tracking executed transactions
-    uint256 public nonce;
+    // keccak256(abi.encode(uint256(keccak256("erc7579.storage.MinimalAccount")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant MINIMALACCOUNT_STORAGE_LOCATION =
+        0x9932fbd4b78281b9b70cc1aeead73e6a5a61a8ecdff6bb3d8788a303ecdcb600;
 
-    /// @notice Unique identifier for this account implementation
-    string public accountId;
+    /// @notice Retrieves the MinimalAccount storage struct from its designated storage slot
+    /// @dev Uses ERC-7201 namespaced storage pattern.
+    /// @return $ The MinimalAccountStorage struct reference for state modifications
+    function _getMinimalAccountStorage() private pure returns (MinimalAccountStorage storage $) {
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            $.slot := MINIMALACCOUNT_STORAGE_LOCATION
+        }
+    }
 
     /* ///////////////////////////////////////////////////////////////
                              CONSTRUCTOR
@@ -67,8 +84,9 @@ contract ERC7579Minimal is IERC7579Minimal, Initializable, UUPSUpgradeable, Owna
         external
         initializer
     {
-        _registry = _registryAddress;
-        accountId = _accountId;
+        MinimalAccountStorage storage $ = _getMinimalAccountStorage();
+        $.registry = _registryAddress;
+        $.accountId = _accountId;
         _initializeOwner(_owner);
     }
 
@@ -122,18 +140,20 @@ contract ERC7579Minimal is IERC7579Minimal, Initializable, UUPSUpgradeable, Owna
     /**
      * @notice Internal function to execute batch calls that revert on failure
      * @dev Validates each call through the registry before execution
-     *      Increments nonce for each execution and emits Executed event
+     * Increments nonce for each execution and emits Executed event
      * @param executions Array of Execution structs containing target, value, and calldata
      * @return result Array of bytes containing the return data from each executed call
      */
     function _exec(Execution[] calldata executions) internal virtual returns (bytes[] memory result) {
+        MinimalAccountStorage storage $ = _getMinimalAccountStorage();
+        IRegistry _registry = $.registry;
         uint256 _length = executions.length;
         // Pre-allocate result array
         result = new bytes[](_length);
 
         // Execute calls with optimized loop
         for (uint256 _i; _i < _length; ++_i) {
-            ++nonce;
+            ++$.nonce;
             // Extract selector and validate account-specific permission
             bytes4 _functionSig = bytes4(executions[_i].callData);
             bytes memory _params = executions[_i].callData[4:];
@@ -142,7 +162,7 @@ contract ERC7579Minimal is IERC7579Minimal, Initializable, UUPSUpgradeable, Owna
             // Execute and store result
             result[_i] = executions[_i].target.callContract(executions[_i].value, executions[_i].callData);
             emit Executed(
-                nonce, msg.sender, executions[_i].target, executions[_i].callData, executions[_i].value, result[_i]
+                $.nonce, msg.sender, executions[_i].target, executions[_i].callData, executions[_i].value, result[_i]
             );
         }
     }
@@ -150,19 +170,21 @@ contract ERC7579Minimal is IERC7579Minimal, Initializable, UUPSUpgradeable, Owna
     /**
      * @notice Internal function to execute batch calls that continue on failure
      * @dev Validates each call through the registry before execution
-     *      Emits TryExecutionFailed event on failures, but continues processing remaining calls
-     *      Increments nonce for each execution and emits Executed event
+     * Emits TryExecutionFailed event on failures, but continues processing remaining calls
+     * Increments nonce for each execution and emits Executed event
      * @param executions Array of Execution structs containing target, value, and calldata
      * @return result Array of bytes containing the return data from each executed call
      */
     function _tryExec(Execution[] calldata executions) internal virtual returns (bytes[] memory result) {
+        MinimalAccountStorage storage $ = _getMinimalAccountStorage();
+        IRegistry _registry = $.registry;
         uint256 _length = executions.length;
         // Pre-allocate result array
         result = new bytes[](_length);
 
         // Execute calls with optimized loop
         for (uint256 _i; _i < _length; ++_i) {
-            ++nonce;
+            ++$.nonce;
 
             // Extract selector and validate account-specific permission
             bytes4 _functionSig = bytes4(executions[_i].callData);
@@ -175,7 +197,7 @@ contract ERC7579Minimal is IERC7579Minimal, Initializable, UUPSUpgradeable, Owna
             result[_i] = _callResult;
             if (!_success) emit TryExecutionFailed(_i);
             emit Executed(
-                nonce, msg.sender, executions[_i].target, executions[_i].callData, executions[_i].value, result[_i]
+                $.nonce, msg.sender, executions[_i].target, executions[_i].callData, executions[_i].value, result[_i]
             );
         }
     }
@@ -187,7 +209,7 @@ contract ERC7579Minimal is IERC7579Minimal, Initializable, UUPSUpgradeable, Owna
     /**
      * @notice Internal authorization check for UUPS upgrades
      * @dev Ensures only the owner can authorize contract upgrades
-     *      Reverts if caller is not the owner
+     * Reverts if caller is not the owner
      */
     function _authorizeUpgrade(address) internal virtual override {
         _checkOwner();
@@ -196,9 +218,25 @@ contract ERC7579Minimal is IERC7579Minimal, Initializable, UUPSUpgradeable, Owna
     /**
      * @notice Internal authorization check for execute operations
      * @dev Ensures only addresses with EXECUTOR_ROLE can execute transactions
-     *      Reverts if caller does not have the required role
+     * Reverts if caller does not have the required role
      */
     function _authorizeExecute(address) internal virtual {
         _checkRoles(EXECUTOR_ROLE);
+    }
+    
+    /* ///////////////////////////////////////////////////////////////
+                            PUBLIC VIEW
+    ///////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc IERC7579Minimal
+    function nonce() public view returns (uint256) {
+        MinimalAccountStorage storage $ = _getMinimalAccountStorage();
+        return $.nonce;
+    }
+
+    /// @inheritdoc IERC7579Minimal
+    function accountId() public view returns (string memory) {
+        MinimalAccountStorage storage $ = _getMinimalAccountStorage();
+        return $.accountId;
     }
 }
