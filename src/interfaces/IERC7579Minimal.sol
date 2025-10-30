@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { ModeCode } from "../libraries/ModeLib.sol";
+import { CallType, ExecType, ModeCode } from "../libraries/ModeLib.sol";
 
+/* ///////////////////////////////////////////////////////////////
+                                STRUCTS
+    ///////////////////////////////////////////////////////////////*/
 struct Execution {
     address target;
     uint256 value;
@@ -10,6 +13,34 @@ struct Execution {
 }
 
 interface IERC7579Minimal {
+
+    /* ///////////////////////////////////////////////////////////////
+                                ERRORS
+    ///////////////////////////////////////////////////////////////*/
+
+    error UnsupportedCallType(CallType);
+
+    error UnsupportedExecType(ExecType);
+
+    /* ///////////////////////////////////////////////////////////////
+                                EVENTS
+    ///////////////////////////////////////////////////////////////*/
+
+    event TryExecutionFailed(uint256 numberInBatch);
+
+    event Executed(
+        uint256 indexed nonce,
+        address executor,
+        address indexed target,
+        bytes indexed callData,
+        uint256 value,
+        bytes result
+    );
+
+    /* ///////////////////////////////////////////////////////////////
+                                CORE
+    ///////////////////////////////////////////////////////////////*/
+    
     /**
      * @dev Executes a transaction on behalf of the account.
      *         This function is intended to be called by ERC-4337 EntryPoint.sol

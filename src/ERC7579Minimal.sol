@@ -16,21 +16,6 @@ contract ERC7579Minimal is IERC7579Minimal, Initializable, UUPSUpgradeable, Owna
     using ExecutionLib for bytes;
     using LibCall for address;
 
-    event Executed(
-        uint256 indexed nonce,
-        address executor,
-        address indexed target,
-        bytes indexed callData,
-        uint256 value,
-        bytes result
-    );
-
-    event TryExecutionFailed(uint256 numberInBatch);
-
-    error UnsupportedCallType(CallType);
-
-    error UnsupportedExecType(ExecType);
-
     uint256 internal constant ADMIN_ROLE = _ROLE_0;
 
     uint256 internal constant EXECUTOR_ROLE = _ROLE_1;

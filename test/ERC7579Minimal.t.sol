@@ -2,7 +2,8 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
-import "../src/ERC7579Minimal.sol";
+import {IERC7579Minimal, Execution, ModeCode} from "../src/interfaces/IERC7579Minimal.sol";
+import {ERC7579Minimal, ExecutionLib, IRegistry} from "../src/ERC7579Minimal.sol";
 
 contract MockRegistry is IRegistry {
     bool public shouldRevert;
@@ -110,7 +111,7 @@ contract ERC7579MinimalTest is Test {
         bytes memory execData = _encodeBatch(address(target), 0, data);
         vm.startPrank(executor);
         vm.expectEmit(true, false, false, true);
-        emit ERC7579Minimal.TryExecutionFailed(0);
+        emit IERC7579Minimal.TryExecutionFailed(0);
         minimal.execute(ModeCode.wrap(bytes32(uint256(0x0201))), execData);
         vm.stopPrank();
         assertEq(minimal.nonce(), 1);
