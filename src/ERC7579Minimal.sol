@@ -5,14 +5,7 @@ import { Execution, IERC7579Minimal } from "./interfaces/IERC7579Minimal.sol";
 
 import { IRegistry } from "./interfaces/IRegistry.sol";
 import { ExecutionLib } from "./libraries/ExecutionLib.sol";
-import {
-    CALLTYPE_BATCH,
-    CallType,
-    EXECTYPE_DEFAULT,
-    EXECTYPE_TRY,
-    ExecType,
-    ModeCode
-} from "./libraries/ModeLib.sol";
+import { CALLTYPE_BATCH, CallType, EXECTYPE_DEFAULT, EXECTYPE_TRY, ExecType, ModeCode } from "./libraries/ModeLib.sol";
 
 import { OwnableRoles } from "solady/auth/OwnableRoles.sol";
 import { Initializable } from "solady/utils/Initializable.sol";
@@ -52,14 +45,7 @@ contract ERC7579Minimal is IERC7579Minimal, Initializable, UUPSUpgradeable, Owna
         _initializeOwner(_owner);
     }
 
-    function execute(
-        ModeCode mode,
-        bytes calldata executionCalldata
-    )
-        external
-        virtual
-        returns (bytes[] memory result)
-    {
+    function execute(ModeCode mode, bytes calldata executionCalldata) external virtual returns (bytes[] memory result) {
         _authorizeExecute(msg.sender);
         CallType callType;
         ExecType execType;
@@ -142,9 +128,8 @@ contract ERC7579Minimal is IERC7579Minimal, Initializable, UUPSUpgradeable, Owna
             registry.authorizeAdapterCall(executions[i].target, functionSig, params);
 
             // Execute and store result
-            (bool success,, bytes memory _result) = executions[i].target.tryCall(
-                executions[i].value, type(uint256).max, type(uint16).max, executions[i].callData
-            );
+            (bool success,, bytes memory _result) = executions[i].target
+                .tryCall(executions[i].value, type(uint256).max, type(uint16).max, executions[i].callData);
             result[i] = _result;
             if (!success) emit TryExecutionFailed(i);
             emit Executed(

@@ -10,5 +10,12 @@ interface IRegistry {
     /// @param target The target contract address
     /// @param selector The function selector
     /// @return Whether the selector is allowed
-    function isAdapterSelectorAllowed(address adapter, address target, bytes4 selector) external view returns (bool);
+    function isAdapterSelectorAllowed(
+        address adapter,
+        address target,
+        bytes4 selector
+    )
+        external
+        view
+        returns (bool);
 }
