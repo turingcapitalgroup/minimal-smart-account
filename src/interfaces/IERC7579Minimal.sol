@@ -94,4 +94,10 @@ interface IERC7579Minimal {
      * @return accountImplementationId The unique identifier string for this account implementation
      */
     function accountId() external view returns (string memory accountImplementationId);
+
+    /**
+     * @notice Returns the nonce of the wallet
+     * @return nonceNumber The unique nonce of the last transaction
+     */
+    function nonce() external view returns (uint256 nonceNumber);
 }

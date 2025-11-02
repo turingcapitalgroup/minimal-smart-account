@@ -5,7 +5,6 @@ libs = ["lib", "dependencies"]
 
 [dependencies]
 forge-std = "1.11.0"
-solady = "0.1.26"
 
 [fmt]
 bracket_spacing = true

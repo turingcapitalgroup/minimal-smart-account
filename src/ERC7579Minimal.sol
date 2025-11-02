@@ -2,10 +2,10 @@
 pragma solidity ^0.8.20;
 
 // External Libraries
-import { OwnableRoles } from "solady/auth/OwnableRoles.sol";
-import { Initializable } from "solady/utils/Initializable.sol";
-import { LibCall } from "solady/utils/LibCall.sol";
-import { UUPSUpgradeable } from "solady/utils/UUPSUpgradeable.sol";
+import { Initializable } from "vendor/Initializable.sol";
+import { LibCall } from "vendor/LibCall.sol";
+import { OwnableRoles } from "vendor/OwnableRoles.sol";
+import { UUPSUpgradeable } from "vendor/UUPSUpgradeable.sol";
 
 // Internal Libraries
 import { ExecutionLib } from "./libraries/ExecutionLib.sol";
@@ -223,7 +223,7 @@ contract ERC7579Minimal is IERC7579Minimal, Initializable, UUPSUpgradeable, Owna
     function _authorizeExecute(address) internal virtual {
         _checkRoles(EXECUTOR_ROLE);
     }
-    
+
     /* ///////////////////////////////////////////////////////////////
                             PUBLIC VIEW
     ///////////////////////////////////////////////////////////////*/
