@@ -58,7 +58,7 @@ contract ERC7579Minimal is IERC7579Minimal, Initializable, UUPSUpgradeable, Owna
     /// @notice Retrieves the MinimalAccount storage struct from its designated storage slot
     /// @dev Uses ERC-7201 namespaced storage pattern.
     /// @return $ The MinimalAccountStorage struct reference for state modifications
-    function _getMinimalAccountStorage() private pure returns (MinimalAccountStorage storage $) {
+    function _getMinimalAccountStorage() internal pure returns (MinimalAccountStorage storage $) {
         // solhint-disable-next-line no-inline-assembly
         assembly {
             $.slot := MINIMALACCOUNT_STORAGE_LOCATION
@@ -82,6 +82,7 @@ contract ERC7579Minimal is IERC7579Minimal, Initializable, UUPSUpgradeable, Owna
         string memory _accountId
     )
         external
+        virtual
         initializer
     {
         MinimalAccountStorage storage $ = _getMinimalAccountStorage();
