@@ -15,13 +15,12 @@ import { CALLTYPE_BATCH, CallType, EXECTYPE_DEFAULT, EXECTYPE_TRY, ExecType, Mod
 import { Execution, IMinimalSmartAccount } from "./interfaces/IMinimalSmartAccount.sol";
 import { IRegistry } from "./interfaces/IRegistry.sol";
 
-/**
- * @title MinimalSmartAccount
- * @notice Minimal implementation of ERC-7579 modular smart account standard
- * @dev This contract provides a minimal ERC-7579 account with batch execution capabilities,
- * registry-based authorization, UUPS upgradeability, and role-based access control
- * Now uses the ERC-7201 namespaced storage pattern.
- */
+/// @title MinimalSmartAccount
+/// @notice Minimal implementation of ERC-7579 modular smart account standard
+/// @dev This contract provides a minimal ERC-7579 account with batch execution capabilities,
+/// registry-based authorization, UUPS upgradeability, and role-based access control
+/// Now uses the ERC-7201 namespaced storage pattern.
+/// Supports receiving Ether, ERC721, and ERC1155 tokens.
 contract MinimalSmartAccount is IMinimalSmartAccount, Initializable, UUPSUpgradeable, OwnableRoles {
     using ExecutionLib for bytes;
     using LibCall for address;
@@ -66,16 +65,21 @@ contract MinimalSmartAccount is IMinimalSmartAccount, Initializable, UUPSUpgrade
     }
 
     /* ///////////////////////////////////////////////////////////////
+                                EVENTS
+    ///////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when the contract receives Ether
+    event EtherReceived(address indexed sender, uint256 amount);
+
+    /* ///////////////////////////////////////////////////////////////
                              CONSTRUCTOR
     ///////////////////////////////////////////////////////////////*/
 
-    /**
-     * @notice Initializes the MinimalSmartAccount account
-     * @dev Can only be called once due to the initializer modifier
-     * @param _owner The address that will be set as the owner of the account
-     * @param _registryAddress The registry contract address for authorizing adapter calls
-     * @param _accountId The unique identifier string for this account implementation
-     */
+    /// @notice Initializes the MinimalSmartAccount account
+    /// @dev Can only be called once due to the initializer modifier
+    /// @param _owner The address that will be set as the owner of the account
+    /// @param _registryAddress The registry contract address for authorizing adapter calls
+    /// @param _accountId The unique identifier string for this account implementation
     function initialize(address _owner, IRegistry _registryAddress, string memory _accountId)
         external
         virtual
@@ -134,13 +138,11 @@ contract MinimalSmartAccount is IMinimalSmartAccount, Initializable, UUPSUpgrade
         }
     }
 
-    /**
-     * @notice Internal function to execute batch calls that revert on failure
-     * @dev Validates each call through the registry before execution
-     * Increments nonce for each execution and emits Executed event
-     * @param executions Array of Execution structs containing target, value, and calldata
-     * @return result Array of bytes containing the return data from each executed call
-     */
+    /// @notice Internal function to execute batch calls that revert on failure
+    /// @dev Validates each call through the registry before execution
+    /// Increments nonce for each execution and emits Executed event
+    /// @param executions Array of Execution structs containing target, value, and calldata
+    /// @return result Array of bytes containing the return data from each executed call
     function _exec(Execution[] calldata executions) internal virtual returns (bytes[] memory result) {
         MinimalAccountStorage storage $ = _getMinimalAccountStorage();
         IRegistry _registry = $.registry;
@@ -164,14 +166,12 @@ contract MinimalSmartAccount is IMinimalSmartAccount, Initializable, UUPSUpgrade
         }
     }
 
-    /**
-     * @notice Internal function to execute batch calls that continue on failure
-     * @dev Validates each call through the registry before execution
-     * Emits TryExecutionFailed event on failures, but continues processing remaining calls
-     * Increments nonce for each execution and emits Executed event
-     * @param executions Array of Execution structs containing target, value, and calldata
-     * @return result Array of bytes containing the return data from each executed call
-     */
+    /// @notice Internal function to execute batch calls that continue on failure
+    /// @dev Validates each call through the registry before execution
+    /// Emits TryExecutionFailed event on failures, but continues processing remaining calls
+    /// Increments nonce for each execution and emits Executed event
+    /// @param executions Array of Execution structs containing target, value, and calldata
+    /// @return result Array of bytes containing the return data from each executed call
     function _tryExec(Execution[] calldata executions) internal virtual returns (bytes[] memory result) {
         MinimalAccountStorage storage $ = _getMinimalAccountStorage();
         IRegistry _registry = $.registry;
@@ -203,22 +203,86 @@ contract MinimalSmartAccount is IMinimalSmartAccount, Initializable, UUPSUpgrade
                             ADMIN OPERATIONS
     ///////////////////////////////////////////////////////////////*/
 
-    /**
-     * @notice Internal authorization check for UUPS upgrades
-     * @dev Ensures only the owner can authorize contract upgrades
-     * Reverts if caller is not the owner
-     */
+    /// @notice Internal authorization check for UUPS upgrades
+    /// @dev Ensures only the owner can authorize contract upgrades
+    /// Reverts if caller is not the owner
     function _authorizeUpgrade(address) internal virtual override {
         _checkOwner();
     }
 
-    /**
-     * @notice Internal authorization check for execute operations
-     * @dev Ensures only addresses with EXECUTOR_ROLE can execute transactions
-     * Reverts if caller does not have the required role
-     */
+    /// @notice Internal authorization check for execute operations
+    /// @dev Ensures only addresses with EXECUTOR_ROLE can execute transactions
+    /// Reverts if caller does not have the required role
     function _authorizeExecute(address) internal virtual {
         _checkRoles(EXECUTOR_ROLE);
+    }
+
+    /* ///////////////////////////////////////////////////////////////
+                        ETHER & TOKEN SUPPORT
+    ///////////////////////////////////////////////////////////////*/
+
+    /// @notice Allows the contract to receive Ether
+    /// @dev Emits EtherReceived event when Ether is received
+    receive() external payable { }
+
+    /// @notice ERC721 token receiver callback
+    /// @dev Handles the receipt of an ERC721 token
+    /// @return bytes4 The function selector to confirm token receipt
+    function onERC721Received(
+        address, /* operator */
+        address, /* from */
+        uint256, /* tokenId */
+        bytes calldata /* data */
+    )
+        external
+        pure
+        returns (bytes4)
+    {
+        return 0x150b7a02; // bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))
+    }
+
+    /// @notice ERC1155 single token receiver callback
+    /// @dev Handles the receipt of a single ERC1155 token type
+    /// @return bytes4 The function selector to confirm token receipt
+    function onERC1155Received(
+        address, /* operator */
+        address, /* from */
+        uint256, /* id */
+        uint256, /* value */
+        bytes calldata /* data */
+    )
+        external
+        pure
+        returns (bytes4)
+    {
+        return 0xf23a6e61; // bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"))
+    }
+
+    /// @notice ERC1155 batch token receiver callback
+    /// @dev Handles the receipt of multiple ERC1155 token types
+    /// @return bytes4 The function selector to confirm token receipt
+    function onERC1155BatchReceived(
+        address, /* operator */
+        address, /* from */
+        uint256[] calldata, /* ids */
+        uint256[] calldata, /* values */
+        bytes calldata /* data */
+    )
+        external
+        pure
+        returns (bytes4)
+    {
+        return 0xbc197c81; // bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"))
+    }
+
+    /// @notice ERC165 interface support check
+    /// @dev Returns true if this contract implements the interface defined by interfaceId
+    /// @param interfaceId The interface identifier to check
+    /// @return bool True if the interface is supported
+    function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
+        return interfaceId == 0x01ffc9a7 // ERC165 Interface ID
+            || interfaceId == 0x150b7a02 // ERC721TokenReceiver Interface ID
+            || interfaceId == 0x4e2312e0; // ERC1155TokenReceiver Interface ID
     }
 
     /* ///////////////////////////////////////////////////////////////
