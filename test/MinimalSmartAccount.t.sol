@@ -8,7 +8,6 @@ import {
     CALLTYPE_DELEGATECALL,
     CALLTYPE_SINGLE,
     CALLTYPE_STATIC,
-    CallType,
     EXECTYPE_DEFAULT,
     EXECTYPE_TRY,
     ExecType,

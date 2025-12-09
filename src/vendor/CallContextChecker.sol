@@ -20,7 +20,7 @@ contract CallContextChecker {
     /// Note: To enable use cases with an immutable default implementation in the bytecode,
     /// (see: ERC6551Proxy), we don't require that the proxy address must match the
     /// value stored in the implementation slot, which may not be initialized.
-    uint256 private immutable __self = uint256(uint160(address(this)));
+    uint256 private immutable __SELF = uint256(uint160(address(this)));
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                    CALL CONTEXT CHECKS                     */
@@ -43,12 +43,14 @@ contract CallContextChecker {
 
     /// @dev Returns the implementation of this contract.
     function _selfImplementation() internal view virtual returns (address) {
-        return address(uint160(__self));
+        // casting to 'uint160' is safe because __SELF was originally cast from address(this)
+        // forge-lint: disable-next-line(unsafe-typecast)
+        return address(uint160(__SELF));
     }
 
     /// @dev Returns whether the current call context is on the implementation itself.
     function _onImplementation() internal view virtual returns (bool) {
-        return __self == uint160(address(this));
+        return __SELF == uint160(address(this));
     }
 
     /// @dev Requires that the current call context is performed via a EIP7702 authority.
