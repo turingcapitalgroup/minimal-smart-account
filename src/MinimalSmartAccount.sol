@@ -16,10 +16,10 @@ import { Execution, IMinimalSmartAccount } from "./interfaces/IMinimalSmartAccou
 import { IRegistry } from "./interfaces/IRegistry.sol";
 
 /// @title MinimalSmartAccount
-/// @notice Minimal implementation of ERC-7579 modular smart account standard
-/// @dev This contract provides a minimal ERC-7579 account with batch execution capabilities,
-/// registry-based authorization, UUPS upgradeability, and role-based access control
-/// Now uses the ERC-7201 namespaced storage pattern.
+/// @notice Minimal smart account implementation with batch execution capabilities
+/// @dev This contract provides a minimal smart account with batch execution capabilities,
+/// registry-based authorization, UUPS upgradeability, and role-based access control.
+/// Uses the ERC-7201 namespaced storage pattern.
 /// Supports receiving Ether, ERC721, and ERC1155 tokens.
 contract MinimalSmartAccount is IMinimalSmartAccount, Initializable, UUPSUpgradeable, OwnableRoles {
     using ExecutionLib for bytes;
@@ -40,7 +40,7 @@ contract MinimalSmartAccount is IMinimalSmartAccount, Initializable, UUPSUpgrade
     ///////////////////////////////////////////////////////////////*/
 
     /// @notice Core storage structure for MinimalSmartAccount using ERC-7201 namespaced storage pattern
-    /// @custom:storage-location erc7201:erc7579.storage.MinimalAccount
+    /// @custom:storage-location erc7201:minimalaccount.storage
     struct MinimalAccountStorage {
         /// @notice Registry contract for authorizing adapter calls
         IRegistry registry;
@@ -50,9 +50,9 @@ contract MinimalSmartAccount is IMinimalSmartAccount, Initializable, UUPSUpgrade
         string accountId;
     }
 
-    // keccak256(abi.encode(uint256(keccak256("erc7579.storage.MinimalAccount")) - 1)) & ~bytes32(uint256(0xff))
+    // keccak256(abi.encode(uint256(keccak256("minimalaccount.storage")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 private constant MINIMALACCOUNT_STORAGE_LOCATION =
-        0x9932fbd4b78281b9b70cc1aeead73e6a5a61a8ecdff6bb3d8788a303ecdcb600;
+        0x6bd7bb73346b1d329ae71e3bd6a33dda74a99b8d2b63e56995f04f7bd5013a00;
 
     /// @notice Retrieves the MinimalAccount storage struct from its designated storage slot
     /// @dev Uses ERC-7201 namespaced storage pattern.
@@ -80,7 +80,11 @@ contract MinimalSmartAccount is IMinimalSmartAccount, Initializable, UUPSUpgrade
     /// @param _owner The address that will be set as the owner of the account
     /// @param _registryAddress The registry contract address for authorizing adapter calls
     /// @param _accountId The unique identifier string for this account implementation
-    function initialize(address _owner, IRegistry _registryAddress, string memory _accountId)
+    function initialize(
+        address _owner,
+        IRegistry _registryAddress,
+        string memory _accountId
+    )
         external
         virtual
         initializer

@@ -22,9 +22,8 @@ struct Execution {
 
 /**
  * @title IMinimalSmartAccount
- * @notice Interface for minimal ERC-7579 modular smart account implementation
+ * @notice Interface for minimal smart account implementation
  * @dev Defines core functionality for executing transactions on behalf of smart accounts
- *      Compatible with ERC-4337 account abstraction standard
  */
 interface IMinimalSmartAccount {
     /* ///////////////////////////////////////////////////////////////
@@ -78,8 +77,7 @@ interface IMinimalSmartAccount {
 
     /**
      * @notice Executes a transaction on behalf of the account
-     * @dev This function is intended to be called by ERC-4337 EntryPoint or authorized executors
-     *      Implementations MUST ensure adequate authorization control
+     * @dev Implementations MUST ensure adequate authorization control
      *      Implementations MUST revert if an unsupported mode is requested
      *      Supports batch executions with either DEFAULT (revert on failure) or TRY (continue on failure) modes
      * @param mode The encoded execution mode of the transaction containing CallType and ExecType
