@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
-import {ERC7579Minimal} from "./ERC7579Minimal.sol";
 
-/// @notice Minimal factory for deterministically deploying and managing ERC7579 proxy contracts.
-/// @author modified from Solady (https://github.com/vectorized/solady/blob/main/src/utils/ERC1967Factory.sol)
-contract ERC1967Factory {
+import { MinimalSmartAccount } from "./MinimalSmartAccount.sol";
+import { IRegistry } from "./interfaces/IRegistry.sol";
+
+/// @title MinimalSmartAccountFactory
+/// @notice Factory for deterministically deploying MinimalSmartAccount proxies using CREATE2
+/// @dev Allows deployment of the same smart account to the same address across multiple chains
+/// @author Modified from Solady (https://github.com/vectorized/solady/blob/main/src/utils/ERC1967Factory.sol)
+contract MinimalSmartAccountFactory {
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                       CUSTOM ERRORS                        */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
@@ -66,8 +70,7 @@ contract ERC1967Factory {
 
     /// @dev The ERC-1967 storage slot for the implementation in the proxy.
     /// `uint256(keccak256("eip1967.proxy.implementation")) - 1`.
-    uint256 internal constant _IMPLEMENTATION_SLOT =
-        0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
+    uint256 internal constant _IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                      ADMIN FUNCTIONS                       */
@@ -109,10 +112,7 @@ contract ERC1967Factory {
     /// @dev Upgrades the proxy to point to `implementation`.
     /// Then, calls the proxy with abi encoded `data`.
     /// The caller of this function must be the admin of the proxy on this factory.
-    function upgradeAndCall(address proxy, address implementation, bytes calldata data)
-        public
-        payable
-    {
+    function upgradeAndCall(address proxy, address implementation, bytes calldata data) public payable {
         assembly {
             // Check if the caller is the admin of the proxy.
             if iszero(eq(sload(shl(96, proxy)), caller())) {
@@ -144,6 +144,31 @@ contract ERC1967Factory {
     /*                      DEPLOY FUNCTIONS                      */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
+    /// @notice Deploys a MinimalSmartAccount proxy deterministically using CREATE2
+    /// @dev The salt must start with the caller's address or be the zero address prefix
+    /// @param implementation The implementation contract address
+    /// @param admin The admin address for this proxy
+    /// @param salt The salt for CREATE2 (must start with caller address)
+    /// @param owner The owner of the MinimalSmartAccount
+    /// @param registry The registry contract for authorization
+    /// @param accountId The unique identifier for this account
+    /// @return proxy The deployed proxy address
+    function deployDeterministic(
+        address implementation,
+        address admin,
+        bytes32 salt,
+        address owner,
+        IRegistry registry,
+        string calldata accountId
+    )
+        public
+        payable
+        returns (address proxy)
+    {
+        bytes memory initData = abi.encodeCall(MinimalSmartAccount.initialize, (owner, registry, accountId));
+        return deployDeterministicAndCall(implementation, admin, salt, initData);
+    }
+
     /// @dev Deploys a proxy for `implementation`, with `admin`, `salt`,
     /// and returns its deterministic address.
     /// The value passed into this function will be forwarded to the proxy.
@@ -152,8 +177,12 @@ contract ERC1967Factory {
         address implementation,
         address admin,
         bytes32 salt,
-        bytes calldata data
-    ) public payable returns (address proxy) {
+        bytes memory data
+    )
+        public
+        payable
+        returns (address proxy)
+    {
         assembly {
             // If the salt does not start with the zero address or the caller.
             if iszero(or(iszero(shr(96, salt)), eq(caller(), shr(96, salt)))) {
@@ -170,8 +199,11 @@ contract ERC1967Factory {
         address admin,
         bytes32 salt,
         bool useSalt,
-        bytes calldata data
-    ) internal returns (address proxy) {
+        bytes memory data
+    )
+        internal
+        returns (address proxy)
+    {
         bytes32 m = _initCode();
         assembly {
             // Create the proxy.
@@ -185,11 +217,20 @@ contract ERC1967Factory {
             }
 
             // Set up the calldata to set the implementation of the proxy.
+            let dataLength := mload(data)
+            let dataOffset := add(data, 0x20)
+
             mstore(m, implementation)
             mstore(add(m, 0x20), _IMPLEMENTATION_SLOT)
-            calldatacopy(add(m, 0x40), data.offset, data.length)
+
+            // Copy the initialization data
+            let dest := add(m, 0x40)
+            for { let i := 0 } lt(i, dataLength) { i := add(i, 0x20) } {
+                mstore(add(dest, i), mload(add(dataOffset, i)))
+            }
+
             // Try setting the implementation on the proxy and revert upon failure.
-            if iszero(call(gas(), proxy, callvalue(), m, add(0x40, data.length), 0x00, 0x00)) {
+            if iszero(call(gas(), proxy, callvalue(), m, add(0x40, dataLength), 0x00, 0x00)) {
                 // Revert with the `DeploymentFailed` selector if there is no error returndata.
                 if iszero(returndatasize()) {
                     mstore(0x00, _DEPLOYMENT_FAILED_ERROR_SELECTOR)
@@ -217,9 +258,6 @@ contract ERC1967Factory {
             mstore(0x35, hash)
             mstore(0x01, shl(96, address()))
             mstore(0x15, salt)
-            // Note: `predicted` has dirty upper 96 bits. We won't clean it here
-            // as it will be automatically cleaned when it is copied into the returndata.
-            // Please clean as needed if used in other inline assembly blocks.
             predicted := keccak256(0x00, 0x55)
             // Restore the part of the free memory pointer that has been overwritten.
             mstore(0x35, 0)

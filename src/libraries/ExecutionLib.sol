@@ -1,21 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
-import { Execution } from "../interfaces/IERC7579Minimal.sol";
+import { Execution } from "../interfaces/IMinimalSmartAccount.sol";
 
 /**
- * Helper Library for decoding Execution calldata
- * malloc for memory allocation is bad for gas. use this assembly instead
- * @author rhinestone | zeroknots.eth, Konrad Kopp (@kopy-kat)
+ * @title ExecutionLib
+ * @notice Helper Library for decoding Execution calldata
+ * @dev malloc for memory allocation is bad for gas. Use this assembly instead.
  */
 library ExecutionLib {
-    error ERC7579DecodingError();
+    error DecodingError();
 
     /**
      * @notice Decode a batch of `Execution` executionBatch from a `bytes` calldata.
-     * @dev code is copied from solady's LibERC7579.sol
-     * https://github.com/Vectorized/solady/blob/740812cedc9a1fc11e17cb3d4569744367dedf19/src/accounts/LibERC7579.sol#L146
-     *      Credits to Vectorized and the Solady Team
+     * @dev Assembly-optimized decoding from Solady
      */
     function decodeBatch(bytes calldata executionCalldata) internal pure returns (Execution[] calldata executionBatch) {
         /// @solidity memory-safe-assembly
