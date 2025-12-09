@@ -105,7 +105,12 @@ contract MockERC1155 {
     {
         (bool success,) = to.call(
             abi.encodeWithSignature(
-                "onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)", msg.sender, from, ids, amounts, data
+                "onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)",
+                msg.sender,
+                from,
+                ids,
+                amounts,
+                data
             )
         );
         require(success, "ERC1155: transfer to non ERC1155Receiver");
@@ -332,11 +337,8 @@ contract MinimalSmartAccountTest is Test {
     function testExecuteBatchNonceIncrementsPerExecution() public {
         Execution[] memory executions = new Execution[](5);
         for (uint256 i = 0; i < 5; i++) {
-            executions[i] = Execution({
-                target: address(target),
-                value: 0,
-                callData: abi.encodeWithSelector(setValueSelector, i)
-            });
+            executions[i] =
+                Execution({ target: address(target), value: 0, callData: abi.encodeWithSelector(setValueSelector, i) });
         }
 
         bytes memory execData = _encodeBatch(executions);
@@ -460,8 +462,7 @@ contract MinimalSmartAccountTest is Test {
 
     function testExecuteRevertUnsupportedStaticCallType() public {
         bytes memory data = abi.encodeWithSelector(setValueSelector, 1);
-        ModeCode staticMode =
-            ModeLib.encode(CALLTYPE_STATIC, EXECTYPE_DEFAULT, MODE_DEFAULT, ModePayload.wrap(0x00));
+        ModeCode staticMode = ModeLib.encode(CALLTYPE_STATIC, EXECTYPE_DEFAULT, MODE_DEFAULT, ModePayload.wrap(0x00));
 
         vm.prank(executor);
         vm.expectRevert(abi.encodeWithSelector(IMinimalSmartAccount.UnsupportedCallType.selector, CALLTYPE_STATIC));
@@ -470,8 +471,7 @@ contract MinimalSmartAccountTest is Test {
 
     function testTryExecuteRevertUnsupportedSingleCallType() public {
         bytes memory data = abi.encodeWithSelector(setValueSelector, 1);
-        ModeCode trySingleMode =
-            ModeLib.encode(CALLTYPE_SINGLE, EXECTYPE_TRY, MODE_DEFAULT, ModePayload.wrap(0x00));
+        ModeCode trySingleMode = ModeLib.encode(CALLTYPE_SINGLE, EXECTYPE_TRY, MODE_DEFAULT, ModePayload.wrap(0x00));
 
         vm.prank(executor);
         vm.expectRevert(abi.encodeWithSelector(IMinimalSmartAccount.UnsupportedCallType.selector, CALLTYPE_SINGLE));
@@ -482,8 +482,7 @@ contract MinimalSmartAccountTest is Test {
         bytes memory data = abi.encodeWithSelector(setValueSelector, 1);
         bytes memory execData = _encodeSingleExecution(address(target), 0, data);
         ExecType invalidExecType = ExecType.wrap(0x02);
-        ModeCode invalidMode =
-            ModeLib.encode(CALLTYPE_BATCH, invalidExecType, MODE_DEFAULT, ModePayload.wrap(0x00));
+        ModeCode invalidMode = ModeLib.encode(CALLTYPE_BATCH, invalidExecType, MODE_DEFAULT, ModePayload.wrap(0x00));
 
         vm.prank(executor);
         vm.expectRevert(abi.encodeWithSelector(IMinimalSmartAccount.UnsupportedExecType.selector, invalidExecType));
@@ -659,11 +658,8 @@ contract MinimalSmartAccountTest is Test {
 
         Execution[] memory executions = new Execution[](numExecutions);
         for (uint256 i = 0; i < numExecutions; i++) {
-            executions[i] = Execution({
-                target: address(target),
-                value: 0,
-                callData: abi.encodeWithSelector(setValueSelector, i)
-            });
+            executions[i] =
+                Execution({ target: address(target), value: 0, callData: abi.encodeWithSelector(setValueSelector, i) });
         }
 
         bytes memory execData = _encodeBatch(executions);
