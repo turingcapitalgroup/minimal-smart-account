@@ -13,26 +13,14 @@ contract MinimalSmartAccountFactory {
     /*                       CUSTOM ERRORS                        */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
-    /// @dev The caller is not authorized to call the function.
-    error Unauthorized();
-
     /// @dev The proxy deployment failed.
     error DeploymentFailed();
-
-    /// @dev The upgrade failed.
-    error UpgradeFailed();
 
     /// @dev The salt does not start with the caller.
     error SaltDoesNotStartWithCaller();
 
-    /// @dev `bytes4(keccak256(bytes("Unauthorized()")))`.
-    uint256 internal constant _UNAUTHORIZED_ERROR_SELECTOR = 0x82b42900;
-
     /// @dev `bytes4(keccak256(bytes("DeploymentFailed()")))`.
     uint256 internal constant _DEPLOYMENT_FAILED_ERROR_SELECTOR = 0x30116425;
-
-    /// @dev `bytes4(keccak256(bytes("UpgradeFailed()")))`.
-    uint256 internal constant _UPGRADE_FAILED_ERROR_SELECTOR = 0x55299b49;
 
     /// @dev `bytes4(keccak256(bytes("SaltDoesNotStartWithCaller()")))`.
     uint256 internal constant _SALT_DOES_NOT_START_WITH_CALLER_ERROR_SELECTOR = 0x2f634836;
@@ -41,104 +29,20 @@ contract MinimalSmartAccountFactory {
     /*                           EVENTS                           */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
-    /// @dev The admin of a proxy contract has been changed.
-    event AdminChanged(address indexed proxy, address indexed admin);
-
-    /// @dev The implementation for a proxy has been upgraded.
-    event Upgraded(address indexed proxy, address indexed implementation);
-
     /// @dev A proxy has been deployed.
-    event Deployed(address indexed proxy, address indexed implementation, address indexed admin);
+    event Deployed(address indexed proxy, address indexed implementation);
 
-    /// @dev `keccak256(bytes("AdminChanged(address,address)"))`.
-    uint256 internal constant _ADMIN_CHANGED_EVENT_SIGNATURE =
-        0x7e644d79422f17c01e4894b5f4f588d331ebfa28653d42ae832dc59e38c9798f;
-
-    /// @dev `keccak256(bytes("Upgraded(address,address)"))`.
-    uint256 internal constant _UPGRADED_EVENT_SIGNATURE =
-        0x5d611f318680d00598bb735d61bacf0c514c6b50e1e5ad30040a4df2b12791c7;
-
-    /// @dev `keccak256(bytes("Deployed(address,address,address)"))`.
+    /// @dev `keccak256(bytes("Deployed(address,address)"))`.
     uint256 internal constant _DEPLOYED_EVENT_SIGNATURE =
-        0xc95935a66d15e0da5e412aca0ad27ae891d20b2fb91cf3994b6a3bf2b8178082;
+        0x09e48df7857bd0c1e0d31bb8a85d42cf1874817895f171c917f6ee2cea73ec20;
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                          STORAGE                           */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
-    // The admin slot for a `proxy` is `shl(96, proxy)`.
-
     /// @dev The ERC-1967 storage slot for the implementation in the proxy.
     /// `uint256(keccak256("eip1967.proxy.implementation")) - 1`.
     uint256 internal constant _IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
-
-    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
-    /*                      ADMIN FUNCTIONS                       */
-    /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-
-    /// @dev Returns the admin of the proxy.
-    function adminOf(address proxy) public view returns (address admin) {
-        assembly {
-            admin := sload(shl(96, proxy))
-        }
-    }
-
-    /// @dev Sets the admin of the proxy.
-    /// The caller of this function must be the admin of the proxy on this factory.
-    function changeAdmin(address proxy, address admin) public {
-        assembly {
-            // Check if the caller is the admin of the proxy.
-            if iszero(eq(sload(shl(96, proxy)), caller())) {
-                mstore(0x00, _UNAUTHORIZED_ERROR_SELECTOR)
-                revert(0x1c, 0x04)
-            }
-            // Store the admin for the proxy.
-            sstore(shl(96, proxy), admin)
-            // Emit the {AdminChanged} event.
-            log3(0, 0, _ADMIN_CHANGED_EVENT_SIGNATURE, proxy, admin)
-        }
-    }
-
-    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
-    /*                     UPGRADE FUNCTIONS                      */
-    /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-
-    /// @dev Upgrades the proxy to point to `implementation`.
-    /// The caller of this function must be the admin of the proxy on this factory.
-    function upgrade(address proxy, address implementation) public payable {
-        upgradeAndCall(proxy, implementation, _emptyData());
-    }
-
-    /// @dev Upgrades the proxy to point to `implementation`.
-    /// Then, calls the proxy with abi encoded `data`.
-    /// The caller of this function must be the admin of the proxy on this factory.
-    function upgradeAndCall(address proxy, address implementation, bytes calldata data) public payable {
-        assembly {
-            // Check if the caller is the admin of the proxy.
-            if iszero(eq(sload(shl(96, proxy)), caller())) {
-                mstore(0x00, _UNAUTHORIZED_ERROR_SELECTOR)
-                revert(0x1c, 0x04)
-            }
-            // Set up the calldata to upgrade the proxy.
-            let m := mload(0x40)
-            mstore(m, implementation)
-            mstore(add(m, 0x20), _IMPLEMENTATION_SLOT)
-            calldatacopy(add(m, 0x40), data.offset, data.length)
-            // Try upgrading the proxy and revert upon failure.
-            if iszero(call(gas(), proxy, callvalue(), m, add(0x40, data.length), 0x00, 0x00)) {
-                // Revert with the `UpgradeFailed` selector if there is no error returndata.
-                if iszero(returndatasize()) {
-                    mstore(0x00, _UPGRADE_FAILED_ERROR_SELECTOR)
-                    revert(0x1c, 0x04)
-                }
-                // Otherwise, bubble up the returned error.
-                returndatacopy(0x00, 0x00, returndatasize())
-                revert(0x00, returndatasize())
-            }
-            // Emit the {Upgraded} event.
-            log3(0, 0, _UPGRADED_EVENT_SIGNATURE, proxy, implementation)
-        }
-    }
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                      DEPLOY FUNCTIONS                      */
@@ -147,7 +51,6 @@ contract MinimalSmartAccountFactory {
     /// @notice Deploys a MinimalSmartAccount proxy deterministically using CREATE2
     /// @dev The salt must start with the caller's address or be the zero address prefix
     /// @param implementation The implementation contract address
-    /// @param admin The admin address for this proxy
     /// @param salt The salt for CREATE2 (must start with caller address)
     /// @param owner The owner of the MinimalSmartAccount
     /// @param registry The registry contract for authorization
@@ -155,7 +58,6 @@ contract MinimalSmartAccountFactory {
     /// @return proxy The deployed proxy address
     function deployDeterministic(
         address implementation,
-        address admin,
         bytes32 salt,
         address owner,
         IRegistry registry,
@@ -166,16 +68,15 @@ contract MinimalSmartAccountFactory {
         returns (address proxy)
     {
         bytes memory initData = abi.encodeCall(MinimalSmartAccount.initialize, (owner, registry, accountId));
-        return deployDeterministicAndCall(implementation, admin, salt, initData);
+        return deployDeterministicAndCall(implementation, salt, initData);
     }
 
-    /// @dev Deploys a proxy for `implementation`, with `admin`, `salt`,
+    /// @dev Deploys a proxy for `implementation` with `salt`,
     /// and returns its deterministic address.
     /// The value passed into this function will be forwarded to the proxy.
     /// Then, calls the proxy with abi encoded `data`.
     function deployDeterministicAndCall(
         address implementation,
-        address admin,
         bytes32 salt,
         bytes memory data
     )
@@ -190,13 +91,12 @@ contract MinimalSmartAccountFactory {
                 revert(0x1c, 0x04)
             }
         }
-        proxy = _deploy(implementation, admin, salt, true, data);
+        proxy = _deploy(implementation, salt, true, data);
     }
 
     /// @dev Deploys the proxy, with optionality to deploy deterministically with a `salt`.
     function _deploy(
         address implementation,
-        address admin,
         bytes32 salt,
         bool useSalt,
         bytes memory data
@@ -241,11 +141,8 @@ contract MinimalSmartAccountFactory {
                 revert(0x00, returndatasize())
             }
 
-            // Store the admin for the proxy.
-            sstore(shl(96, proxy), admin)
-
             // Emit the {Deployed} event.
-            log4(0, 0, _DEPLOYED_EVENT_SIGNATURE, proxy, implementation, admin)
+            log3(0, 0, _DEPLOYED_EVENT_SIGNATURE, proxy, implementation)
         }
     }
 
@@ -410,17 +307,6 @@ contract MinimalSmartAccountFactory {
                 mstore(m, 0x607f3d8160093d39f33d3d3373) // 9 + 4
             }
             // forgefmt: disable-end
-        }
-    }
-
-    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
-    /*                          HELPERS                           */
-    /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-
-    /// @dev Helper function to return an empty bytes calldata.
-    function _emptyData() internal pure returns (bytes calldata data) {
-        assembly {
-            data.length := 0
         }
     }
 }
