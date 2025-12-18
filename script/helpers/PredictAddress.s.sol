@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import { MinimalSmartAccountFactory } from "../../src/MinimalSmartAccountFactory.sol";
 import { DeploymentManager } from "../utils/DeploymentManager.sol";
-import { Script, console } from "forge-std/Script.sol";
+import { console } from "forge-std/console.sol";
 
 /// @title PredictProxyAddress
 /// @notice Predicts the proxy address for a single-chain deployment without deploying

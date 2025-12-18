@@ -84,7 +84,7 @@ contract MinimalSmartAccountFactory {
         payable
         returns (address proxy)
     {
-        assembly {
+        assembly ("memory-safe") {
             // If the salt does not start with the zero address or the caller.
             if iszero(or(iszero(shr(96, salt)), eq(caller(), shr(96, salt)))) {
                 mstore(0x00, _SALT_DOES_NOT_START_WITH_CALLER_ERROR_SELECTOR)
@@ -105,7 +105,7 @@ contract MinimalSmartAccountFactory {
         returns (address proxy)
     {
         bytes32 m = _initCode();
-        assembly {
+        assembly ("memory-safe") {
             // Create the proxy.
             switch useSalt
             case 0 { proxy := create(0, add(m, 0x13), 0x88) }
@@ -149,7 +149,7 @@ contract MinimalSmartAccountFactory {
     /// @dev Returns the address of the proxy deployed with `salt`.
     function predictDeterministicAddress(bytes32 salt) public view returns (address predicted) {
         bytes32 hash = initCodeHash();
-        assembly {
+        assembly ("memory-safe") {
             // Compute and store the bytecode hash.
             mstore8(0x00, 0xff) // Write the prefix.
             mstore(0x35, hash)
@@ -165,14 +165,14 @@ contract MinimalSmartAccountFactory {
     /// Used for mining vanity addresses with create2crunch.
     function initCodeHash() public view returns (bytes32 result) {
         bytes32 m = _initCode();
-        assembly {
+        assembly ("memory-safe") {
             result := keccak256(add(m, 0x13), 0x88)
         }
     }
 
     /// @dev Returns a pointer to the initialization code of a proxy created via this factory.
     function _initCode() internal view returns (bytes32 m) {
-        assembly {
+        assembly ("memory-safe") {
             /**
              * -------------------------------------------------------------------------------------+
              * CREATION (9 bytes)                                                                   |
