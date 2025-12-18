@@ -16,6 +16,7 @@ docs/
 
 # Soldeer
 /dependencies
+soldeer.lock
 
 # Deployment outputs (keep configs, ignore outputs)
 /deployments/output/

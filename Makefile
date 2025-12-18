@@ -5,6 +5,7 @@
 
 .PHONY: all build test clean fmt coverage snapshot gas-report \
         deploy-localhost deploy-sepolia deploy-mainnet \
+        deploy-localhost-dry-run deploy-sepolia-dry-run \
         deploy-impl-localhost deploy-impl-sepolia \
         deploy-factory-localhost deploy-factory-sepolia \
         deploy-proxy-localhost deploy-proxy-sepolia \
@@ -91,6 +92,13 @@ deploy-proxy-localhost:
 		--broadcast \
 		--ffi
 
+# Dry-run: simulate deployment without broadcasting
+deploy-localhost-dry-run:
+	forge script script/Deploy.s.sol:DeployAll \
+		--rpc-url http://localhost:8545 \
+		--private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
+		--ffi
+
 # ==============================================================================
 # Testnet Deployment (Sepolia)
 # ==============================================================================
@@ -130,6 +138,13 @@ deploy-proxy-sepolia:
 		--account keyDeployer \
 		--broadcast \
 		--verify \
+		--ffi
+
+# Dry-run: simulate deployment without broadcasting
+deploy-sepolia-dry-run:
+	forge script script/Deploy.s.sol:DeployAll \
+		--rpc-url sepolia \
+		--account keyDeployer \
 		--ffi
 
 # ==============================================================================
@@ -187,17 +202,19 @@ help:
 	@echo "  make sizes          - Show contract sizes"
 	@echo ""
 	@echo "Local Development (Anvil):"
-	@echo "  make anvil                   - Start local Anvil node"
-	@echo "  make deploy-localhost        - Deploy all to localhost"
-	@echo "  make deploy-impl-localhost   - Deploy implementation only"
+	@echo "  make anvil                    - Start local Anvil node"
+	@echo "  make deploy-localhost         - Deploy all to localhost"
+	@echo "  make deploy-localhost-dry-run - Simulate deploy (no broadcast)"
+	@echo "  make deploy-impl-localhost    - Deploy implementation only"
 	@echo "  make deploy-factory-localhost - Deploy factory only"
-	@echo "  make deploy-proxy-localhost  - Deploy proxy only"
+	@echo "  make deploy-proxy-localhost   - Deploy proxy only"
 	@echo ""
 	@echo "Testnet (Sepolia):"
-	@echo "  make deploy-sepolia          - Deploy all to Sepolia"
-	@echo "  make deploy-impl-sepolia     - Deploy implementation only"
-	@echo "  make deploy-factory-sepolia  - Deploy factory only"
-	@echo "  make deploy-proxy-sepolia    - Deploy proxy only"
+	@echo "  make deploy-sepolia           - Deploy all to Sepolia"
+	@echo "  make deploy-sepolia-dry-run   - Simulate deploy (no broadcast)"
+	@echo "  make deploy-impl-sepolia      - Deploy implementation only"
+	@echo "  make deploy-factory-sepolia   - Deploy factory only"
+	@echo "  make deploy-proxy-sepolia     - Deploy proxy only"
 	@echo ""
 	@echo "Mainnet Multi-Chain:"
 	@echo "  make validate-mainnet  - Validate mainnet.json config"
@@ -214,4 +231,4 @@ help:
 	@echo "  - Edit deployments/config/sepolia.json for testnet"
 	@echo "  - Edit deployments/config/mainnet.json for production multi-chain"
 	@echo ""
-	@echo "Outputs saved to: deployments/output/<network>/addresses.json"
+	@echo "Outputs saved to: deployments/output/<network>/<accountId>.json"
