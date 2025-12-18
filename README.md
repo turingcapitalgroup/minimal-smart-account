@@ -35,6 +35,8 @@ git clone <repository-url>
 cd minimal-smart-account
 
 # Install dependencies
+make install
+# or
 forge soldeer install
 ```
 
@@ -44,6 +46,9 @@ forge soldeer install
 # Build
 make build
 
+# Build (fast, using solx compiler)
+make build-fast
+
 # Run tests
 make test
 
@@ -52,9 +57,19 @@ make test-gas
 
 # Format code
 make fmt
+make fmt-check  # Check formatting without modifying
 
 # Check contract sizes
 make sizes
+
+# Generate coverage report
+make coverage
+
+# Generate gas snapshot
+make snapshot
+
+# Clean build artifacts
+make clean
 ```
 
 ## Configuration
@@ -72,62 +87,78 @@ cp .env.example .env
 
 ## Deployment
 
-### Single Chain Deployment
+### Local Development (Anvil)
 
-Deploy to a specific chain:
+Start a local node and deploy:
 
 ```bash
-# Testnets
+# Start local Anvil node
+make anvil
+
+# Deploy all contracts (implementation + factory)
+make deploy-localhost
+
+# Or deploy individual components
+make deploy-impl-localhost     # Implementation only
+make deploy-factory-localhost  # Factory only
+make deploy-proxy-localhost    # Proxy instance (requires factory)
+
+# Dry-run (simulate without broadcasting)
+make deploy-localhost-dry-run
+```
+
+### Testnet Deployment (Sepolia)
+
+Deploy to Sepolia testnet (requires `keyDeployer` account in forge keystore):
+
+```bash
+# Deploy all contracts
 make deploy-sepolia
-make deploy-arbitrum-sepolia
-make deploy-optimism-sepolia
-make deploy-base-sepolia
 
-# Mainnets
+# Or deploy individual components
+make deploy-impl-sepolia     # Implementation only
+make deploy-factory-sepolia  # Factory only
+make deploy-proxy-sepolia    # Proxy instance
+
+# Dry-run
+make deploy-sepolia-dry-run
+```
+
+### Multi-Chain Mainnet Deployment
+
+Deploy to all chains configured in `deployments/config/mainnet.json`:
+
+```bash
+# Validate configuration before deployment
+make validate-mainnet
+
+# Deploy to all configured chains
 make deploy-mainnet
-make deploy-arbitrum
-make deploy-optimism
-make deploy-base
 ```
 
-### Multi-Chain Deployment
+### Address Prediction
 
-Deploy to all testnets or mainnets:
+Predict deployment addresses before deploying:
 
 ```bash
-# All testnets
-make deploy-testnets
+# Predict proxy address
+make predict-localhost  # On localhost
+make predict-sepolia    # On Sepolia
+make predict-mainnet    # Show all mainnet chain configs
 
-# All mainnets
-make deploy-mainnets
-
-# All chains
-make deploy-all
+# Predict factory address
+make predict-factory
 ```
 
-### Proxy Deployment
+### Deployment Configuration
 
-After deploying the factory and implementation, deploy individual account proxies:
+Configuration files are located in `deployments/config/`:
 
-```bash
-# Set required environment variables
-export FACTORY_ADDRESS=0x...
-export IMPLEMENTATION_ADDRESS=0x...
-export REGISTRY_ADDRESS=0x...
+- `localhost.json` - Local development settings
+- `sepolia.json` - Testnet configuration
+- `mainnet.json` - Multi-chain mainnet configuration
 
-# Deploy proxy
-make deploy-proxy-sepolia
-```
-
-### Predict Address
-
-Predict the deployment address before deploying:
-
-```bash
-export FACTORY_ADDRESS=0x...
-export DEPLOYER_ADDRESS=0x...
-make predict-address
-```
+Deployment outputs are saved to `deployments/output/<network>/<accountId>.json`
 
 ## Usage
 
