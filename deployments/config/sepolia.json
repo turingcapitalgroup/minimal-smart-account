@@ -1,0 +1,17 @@
+{
+  "deployment": {
+    "type": "single",
+    "salt": "0x0000000000000000000000000000000000000000000000000000000000000001"
+  },
+  "roles": {
+    "owner": "",
+    "deployer": ""
+  },
+  "account": {
+    "accountId": "minimal-smart-account.v1"
+  },
+  "external": {
+    "registry": "",
+    "factory": "0x0000000000000000000000000000000000000000"
+  }
+}

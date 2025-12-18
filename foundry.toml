@@ -6,6 +6,7 @@ optimizer = true
 optimizer_runs = 200
 via_ir = false
 evm_version = "cancun"
+fs_permissions = [{ access = "read-write", path = "." }]
 
 # Enable automatic gas reporting
 gas_reports = ["*"]
