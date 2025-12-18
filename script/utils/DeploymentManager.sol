@@ -18,6 +18,7 @@ abstract contract DeploymentManager is Script {
         address deployer;
         string accountId;
         address registry;
+        address factory;
     }
 
     /// @notice Multi-chain deployment configuration
@@ -37,6 +38,7 @@ abstract contract DeploymentManager is Script {
         string etherscanApiKeyEnvVar;
         bool verify;
         address registry;
+        address factory;
     }
 
     /// @notice Deployment output containing deployed contract addresses
@@ -47,6 +49,44 @@ abstract contract DeploymentManager is Script {
         address implementation;
         address factory;
         address proxy;
+    }
+
+    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
+    /*                      VERBOSE LOGGING                       */
+    /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
+
+    /// @notice Controls verbose logging (default: true for scripts, false for tests)
+    bool public verbose = true;
+
+    /// @notice Sets the verbose logging flag
+    /// @param _verbose Whether to enable verbose logging
+    function setVerbose(bool _verbose) public {
+        verbose = _verbose;
+    }
+
+    /// @notice Log a message (only if verbose)
+    function _log(string memory message) internal view {
+        if (verbose) console.log(message);
+    }
+
+    /// @notice Log a message with an address (only if verbose)
+    function _log(string memory message, address value) internal view {
+        if (verbose) console.log(message, value);
+    }
+
+    /// @notice Log a message with a uint256 (only if verbose)
+    function _log(string memory message, uint256 value) internal view {
+        if (verbose) console.log(message, value);
+    }
+
+    /// @notice Log a message with a string (only if verbose)
+    function _log(string memory message, string memory value) internal view {
+        if (verbose) console.log(message, value);
+    }
+
+    /// @notice Log a message with a bytes32 (only if verbose)
+    function _log(string memory message, bytes32 value) internal view {
+        if (verbose) console.log(message, vm.toString(value));
     }
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
@@ -66,6 +106,7 @@ abstract contract DeploymentManager is Script {
         config.deployer = vm.parseJsonAddress(json, ".roles.deployer");
         config.accountId = vm.parseJsonString(json, ".account.accountId");
         config.registry = vm.parseJsonAddress(json, ".external.registry");
+        config.factory = vm.parseJsonAddress(json, ".external.factory");
     }
 
     /// @notice Reads multi-chain deployment configuration from mainnet.json
@@ -221,26 +262,27 @@ abstract contract DeploymentManager is Script {
         fullSalt = bytes32(uint256(uint160(deployer))) | (salt >> 160);
     }
 
-    /// @notice Logs network configuration details
+    /// @notice Logs network configuration details (only if verbose)
     /// @param config The network configuration to log
-    function logConfig(NetworkConfig memory config) internal pure {
-        console.log("\n=== Network Configuration ===");
-        console.log("Salt:", config.salt);
-        console.log("Owner:", config.owner);
-        console.log("Deployer:", config.deployer);
-        console.log("Account ID:", config.accountId);
-        console.log("Registry:", config.registry);
+    function logConfig(NetworkConfig memory config) internal view {
+        _log("\n=== Network Configuration ===");
+        _log("Salt:", config.salt);
+        _log("Owner:", config.owner);
+        _log("Deployer:", config.deployer);
+        _log("Account ID:", config.accountId);
+        _log("Registry:", config.registry);
+        _log("Factory:", config.factory);
     }
 
-    /// @notice Logs deployment output details
+    /// @notice Logs deployment output details (only if verbose)
     /// @param output The deployment output to log
-    function logDeployment(DeploymentOutput memory output) internal pure {
-        console.log("\n=== Deployment Output ===");
-        console.log("Chain ID:", output.chainId);
-        console.log("Network:", output.network);
-        console.log("Timestamp:", output.timestamp);
-        console.log("Implementation:", output.implementation);
-        console.log("Factory:", output.factory);
-        console.log("Proxy:", output.proxy);
+    function logDeployment(DeploymentOutput memory output) internal view {
+        _log("\n=== Deployment Output ===");
+        _log("Chain ID:", output.chainId);
+        _log("Network:", output.network);
+        _log("Timestamp:", output.timestamp);
+        _log("Implementation:", output.implementation);
+        _log("Factory:", output.factory);
+        _log("Proxy:", output.proxy);
     }
 }

@@ -5,36 +5,42 @@ import { MinimalSmartAccount } from "../src/MinimalSmartAccount.sol";
 import { MinimalSmartAccountFactory } from "../src/MinimalSmartAccountFactory.sol";
 import { IRegistry } from "../src/interfaces/IRegistry.sol";
 import { DeploymentManager } from "./utils/DeploymentManager.sol";
-import { Script, console } from "forge-std/Script.sol";
 
 /// @title DeployAll
 /// @notice Deploys all contracts (implementation + factory) for a single chain
 /// @dev Reads config from deployments/config/{network}.json and writes output
+///      If factory is address(0) in config, deploys a new one
 contract DeployAll is DeploymentManager {
-    function run() external {
+    function run() external returns (DeploymentOutput memory output) {
         string memory network = getNetworkName();
         NetworkConfig memory config = readNetworkConfig(network);
 
-        console.log("=== Deploying MinimalSmartAccount ===");
-        console.log("Network:", network);
-        console.log("Chain ID:", block.chainid);
+        _log("=== Deploying MinimalSmartAccount ===");
+        _log("Network:", network);
+        _log("Chain ID:", block.chainid);
         logConfig(config);
 
         vm.startBroadcast();
 
         // Deploy implementation
         address implementation = address(new MinimalSmartAccount());
-        console.log("\nImplementation deployed at:", implementation);
+        _log("\nImplementation deployed at:", implementation);
 
-        // Deploy factory with CREATE2
-        bytes32 salt = vm.parseBytes32(config.salt);
-        address factory = address(new MinimalSmartAccountFactory{ salt: salt }());
-        console.log("Factory deployed at:", factory);
+        // Deploy factory or use existing
+        address factory;
+        if (config.factory == address(0)) {
+            bytes32 salt = vm.parseBytes32(config.salt);
+            factory = address(new MinimalSmartAccountFactory{ salt: salt }());
+            _log("Factory deployed at:", factory);
+        } else {
+            factory = config.factory;
+            _log("Using existing factory:", factory);
+        }
 
         vm.stopBroadcast();
 
         // Write deployment output
-        DeploymentOutput memory output = DeploymentOutput({
+        output = DeploymentOutput({
             chainId: block.chainid,
             network: network,
             timestamp: block.timestamp,
@@ -44,8 +50,41 @@ contract DeployAll is DeploymentManager {
         });
         writeDeploymentOutput(network, output);
 
-        console.log("\n=== Deployment Complete ===");
-        console.log("Output written to: deployments/output/", network, "/addresses.json");
+        _log("\n=== Deployment Complete ===");
+    }
+
+    /// @notice Deploy all contracts with custom config (for testing)
+    /// @param config The network configuration to use
+    /// @return output The deployment output
+    function deploy(NetworkConfig memory config) external returns (DeploymentOutput memory output) {
+        _log("=== Deploying MinimalSmartAccount ===");
+        logConfig(config);
+
+        // Deploy implementation
+        address implementation = address(new MinimalSmartAccount());
+        _log("Implementation deployed at:", implementation);
+
+        // Deploy factory or use existing
+        address factory;
+        if (config.factory == address(0)) {
+            bytes32 salt = vm.parseBytes32(config.salt);
+            factory = address(new MinimalSmartAccountFactory{ salt: salt }());
+            _log("Factory deployed at:", factory);
+        } else {
+            factory = config.factory;
+            _log("Using existing factory:", factory);
+        }
+
+        output = DeploymentOutput({
+            chainId: block.chainid,
+            network: "test",
+            timestamp: block.timestamp,
+            implementation: implementation,
+            factory: factory,
+            proxy: address(0)
+        });
+
+        _log("\n=== Deployment Complete ===");
     }
 }
 
@@ -55,17 +94,23 @@ contract DeployImplementation is DeploymentManager {
     function run() external returns (address implementation) {
         string memory network = getNetworkName();
 
-        console.log("=== Deploying Implementation ===");
-        console.log("Network:", network);
-        console.log("Chain ID:", block.chainid);
+        _log("=== Deploying Implementation ===");
+        _log("Network:", network);
+        _log("Chain ID:", block.chainid);
 
         vm.startBroadcast();
         implementation = address(new MinimalSmartAccount());
         vm.stopBroadcast();
 
-        console.log("Implementation deployed at:", implementation);
+        _log("Implementation deployed at:", implementation);
 
         writeContractAddress(network, "implementation", implementation);
+    }
+
+    /// @notice Deploy implementation (for testing)
+    function deploy() external returns (address implementation) {
+        implementation = address(new MinimalSmartAccount());
+        _log("Implementation deployed at:", implementation);
     }
 }
 
@@ -76,18 +121,24 @@ contract DeployFactory is DeploymentManager {
         string memory network = getNetworkName();
         NetworkConfig memory config = readNetworkConfig(network);
 
-        console.log("=== Deploying Factory ===");
-        console.log("Network:", network);
-        console.log("Chain ID:", block.chainid);
+        _log("=== Deploying Factory ===");
+        _log("Network:", network);
+        _log("Chain ID:", block.chainid);
 
         vm.startBroadcast();
         bytes32 salt = vm.parseBytes32(config.salt);
         factory = address(new MinimalSmartAccountFactory{ salt: salt }());
         vm.stopBroadcast();
 
-        console.log("Factory deployed at:", factory);
+        _log("Factory deployed at:", factory);
 
         writeContractAddress(network, "factory", factory);
+    }
+
+    /// @notice Deploy factory with salt (for testing)
+    function deploy(bytes32 salt) external returns (address factory) {
+        factory = address(new MinimalSmartAccountFactory{ salt: salt }());
+        _log("Factory deployed at:", factory);
     }
 }
 
@@ -102,12 +153,12 @@ contract DeployProxy is DeploymentManager {
         require(existing.factory != address(0), "Factory not deployed. Run deploy-all first.");
         require(existing.implementation != address(0), "Implementation not deployed. Run deploy-all first.");
 
-        console.log("=== Deploying Proxy ===");
-        console.log("Network:", network);
-        console.log("Chain ID:", block.chainid);
-        console.log("Factory:", existing.factory);
-        console.log("Implementation:", existing.implementation);
-        console.log("Owner:", config.owner);
+        _log("=== Deploying Proxy ===");
+        _log("Network:", network);
+        _log("Chain ID:", block.chainid);
+        _log("Factory:", existing.factory);
+        _log("Implementation:", existing.implementation);
+        _log("Owner:", config.owner);
 
         MinimalSmartAccountFactory factory = MinimalSmartAccountFactory(existing.factory);
 
@@ -117,7 +168,7 @@ contract DeployProxy is DeploymentManager {
 
         // Predict address before deployment
         address predictedAddress = factory.predictDeterministicAddress(fullSalt);
-        console.log("Predicted proxy address:", predictedAddress);
+        _log("Predicted proxy address:", predictedAddress);
 
         vm.startBroadcast();
         proxy = factory.deployDeterministic(
@@ -125,10 +176,27 @@ contract DeployProxy is DeploymentManager {
         );
         vm.stopBroadcast();
 
-        console.log("Proxy deployed at:", proxy);
+        _log("Proxy deployed at:", proxy);
         require(proxy == predictedAddress, "Address mismatch!");
 
         writeContractAddress(network, "proxy", proxy);
+    }
+
+    /// @notice Deploy proxy with custom parameters (for testing)
+    function deploy(
+        address factoryAddr,
+        address implementation,
+        bytes32 salt,
+        address owner,
+        IRegistry registry,
+        string memory accountId
+    )
+        external
+        returns (address proxy)
+    {
+        MinimalSmartAccountFactory factory = MinimalSmartAccountFactory(factoryAddr);
+        proxy = factory.deployDeterministic(implementation, salt, owner, registry, accountId);
+        _log("Proxy deployed at:", proxy);
     }
 }
 
@@ -140,23 +208,29 @@ contract DeployMainnet is DeploymentManager {
         MultiChainConfig memory config = readMainnetConfig();
         ChainConfig memory chainConfig = getChainConfigForCurrentNetwork();
 
-        console.log("=== Mainnet Deployment ===");
-        console.log("Network:", chainConfig.name);
-        console.log("Chain ID:", block.chainid);
-        console.log("Owner:", config.owner);
-        console.log("Deployer:", config.deployer);
-        console.log("Registry:", chainConfig.registry);
+        _log("=== Mainnet Deployment ===");
+        _log("Network:", chainConfig.name);
+        _log("Chain ID:", block.chainid);
+        _log("Owner:", config.owner);
+        _log("Deployer:", config.deployer);
+        _log("Registry:", chainConfig.registry);
 
         vm.startBroadcast();
 
         // Deploy implementation
         address implementation = address(new MinimalSmartAccount());
-        console.log("\nImplementation deployed at:", implementation);
+        _log("\nImplementation deployed at:", implementation);
 
-        // Deploy factory with CREATE2
+        // Deploy factory or use existing
+        address factory;
         bytes32 salt = vm.parseBytes32(config.salt);
-        address factory = address(new MinimalSmartAccountFactory{ salt: salt }());
-        console.log("Factory deployed at:", factory);
+        if (chainConfig.factory == address(0)) {
+            factory = address(new MinimalSmartAccountFactory{ salt: salt }());
+            _log("Factory deployed at:", factory);
+        } else {
+            factory = chainConfig.factory;
+            _log("Using existing factory:", factory);
+        }
 
         // Deploy proxy
         MinimalSmartAccountFactory factoryContract = MinimalSmartAccountFactory(factory);
@@ -165,7 +239,7 @@ contract DeployMainnet is DeploymentManager {
         address proxy = factoryContract.deployDeterministic(
             implementation, fullSalt, config.owner, IRegistry(chainConfig.registry), config.accountId
         );
-        console.log("Proxy deployed at:", proxy);
+        _log("Proxy deployed at:", proxy);
 
         vm.stopBroadcast();
 
@@ -180,6 +254,6 @@ contract DeployMainnet is DeploymentManager {
         });
         writeDeploymentOutput(chainConfig.name, output);
 
-        console.log("\n=== Deployment Complete ===");
+        _log("\n=== Deployment Complete ===");
     }
 }

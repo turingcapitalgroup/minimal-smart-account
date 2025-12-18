@@ -10,9 +10,8 @@
       "rpcEnvVar": "ETH_RPC_URL",
       "etherscanApiKeyEnvVar": "ETHERSCAN_API_KEY",
       "verify": true,
-      "external": {
-        "registry": ""
-      }
+      "registry": "0x0000000000000000000000000000000000000000",
+      "factory": "0x0000000000000000000000000000000000000000"
     },
     {
       "name": "arbitrum",
@@ -20,9 +19,8 @@
       "rpcEnvVar": "ARBITRUM_RPC_URL",
       "etherscanApiKeyEnvVar": "ARBISCAN_API_KEY",
       "verify": true,
-      "external": {
-        "registry": ""
-      }
+      "registry": "0x0000000000000000000000000000000000000000",
+      "factory": "0x0000000000000000000000000000000000000000"
     },
     {
       "name": "optimism",
@@ -30,9 +28,8 @@
       "rpcEnvVar": "OPTIMISM_RPC_URL",
       "etherscanApiKeyEnvVar": "OPTIMISM_ETHERSCAN_API_KEY",
       "verify": true,
-      "external": {
-        "registry": ""
-      }
+      "registry": "0x0000000000000000000000000000000000000000",
+      "factory": "0x0000000000000000000000000000000000000000"
     },
     {
       "name": "base",
@@ -40,9 +37,8 @@
       "rpcEnvVar": "BASE_RPC_URL",
       "etherscanApiKeyEnvVar": "BASESCAN_API_KEY",
       "verify": true,
-      "external": {
-        "registry": ""
-      }
+      "registry": "0x0000000000000000000000000000000000000000",
+      "factory": "0x0000000000000000000000000000000000000000"
     },
     {
       "name": "polygon",
@@ -50,9 +46,8 @@
       "rpcEnvVar": "POLYGON_RPC_URL",
       "etherscanApiKeyEnvVar": "POLYGONSCAN_API_KEY",
       "verify": true,
-      "external": {
-        "registry": ""
-      }
+      "registry": "0x0000000000000000000000000000000000000000",
+      "factory": "0x0000000000000000000000000000000000000000"
     },
     {
       "name": "avalanche",
@@ -60,9 +55,8 @@
       "rpcEnvVar": "AVALANCHE_RPC_URL",
       "etherscanApiKeyEnvVar": "SNOWTRACE_API_KEY",
       "verify": true,
-      "external": {
-        "registry": ""
-      }
+      "registry": "0x0000000000000000000000000000000000000000",
+      "factory": "0x0000000000000000000000000000000000000000"
     },
     {
       "name": "bnb",
@@ -70,9 +64,8 @@
       "rpcEnvVar": "BNB_RPC_URL",
       "etherscanApiKeyEnvVar": "BSCSCAN_API_KEY",
       "verify": true,
-      "external": {
-        "registry": ""
-      }
+      "registry": "0x0000000000000000000000000000000000000000",
+      "factory": "0x0000000000000000000000000000000000000000"
     },
     {
       "name": "unichain",
@@ -80,9 +73,8 @@
       "rpcEnvVar": "UNICHAIN_RPC_URL",
       "etherscanApiKeyEnvVar": "UNICHAIN_API_KEY",
       "verify": true,
-      "external": {
-        "registry": ""
-      }
+      "registry": "0x0000000000000000000000000000000000000000",
+      "factory": "0x0000000000000000000000000000000000000000"
     }
   ],
   "roles": {

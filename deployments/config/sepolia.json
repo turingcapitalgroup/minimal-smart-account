@@ -11,6 +11,7 @@
     "accountId": "minimal-smart-account.v1"
   },
   "external": {
-    "registry": ""
+    "registry": "",
+    "factory": "0x0000000000000000000000000000000000000000"
   }
 }
