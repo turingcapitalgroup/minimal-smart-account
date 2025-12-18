@@ -121,12 +121,7 @@ contract DeployProxy is DeploymentManager {
 
         vm.startBroadcast();
         proxy = factory.deployDeterministic(
-            existing.implementation,
-            config.deployer,
-            fullSalt,
-            config.owner,
-            IRegistry(config.registry),
-            config.accountId
+            existing.implementation, fullSalt, config.owner, IRegistry(config.registry), config.accountId
         );
         vm.stopBroadcast();
 
@@ -168,7 +163,7 @@ contract DeployMainnet is DeploymentManager {
         bytes32 fullSalt = computeFullSalt(config.deployer, salt);
 
         address proxy = factoryContract.deployDeterministic(
-            implementation, config.deployer, fullSalt, config.owner, IRegistry(chainConfig.registry), config.accountId
+            implementation, fullSalt, config.owner, IRegistry(chainConfig.registry), config.accountId
         );
         console.log("Proxy deployed at:", proxy);
 

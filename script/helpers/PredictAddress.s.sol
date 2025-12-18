@@ -111,10 +111,11 @@ contract ValidateMainnetConfig is DeploymentManager {
 
         for (uint256 i = 0; i < config.chains.length; i++) {
             ChainConfig memory chain = config.chains[i];
-            console.log("\n--- %s (Chain ID: %d) ---", chain.name, chain.chainId);
+            console.log("\n---", chain.name, "---");
+            console.log("  Chain ID:", chain.chainId);
 
             if (chain.registry == address(0)) {
-                console.log("  WARNING: Registry not set for %s", chain.name);
+                console.log("  WARNING: Registry not set for", chain.name);
             } else {
                 console.log("  Registry:", chain.registry);
             }
