@@ -50,15 +50,18 @@ abstract contract DeploymentBaseTest is BaseTest {
         // Deploy mock registry
         registry = new MockRegistry();
 
-        // Initialize deployment scripts with verbose=false
+        // Initialize deployment scripts with verbose=false and writeToJson=false for tests
         deployAll = new DeployAll();
         deployAll.setVerbose(false);
+        deployAll.setWriteToJson(false);
 
         deployImplementation = new DeployImplementation();
         deployImplementation.setVerbose(false);
+        deployImplementation.setWriteToJson(false);
 
         deployFactory = new DeployFactory();
         deployFactory.setVerbose(false);
+        deployFactory.setWriteToJson(false);
 
         // Create config for deployment
         DeploymentManager.NetworkConfig memory config = DeploymentManager.NetworkConfig({
@@ -95,12 +98,14 @@ abstract contract DeploymentBaseTest is BaseTest {
         // Deploy mock registry
         registry = new MockRegistry();
 
-        // Initialize deployment scripts with verbose=false
+        // Initialize deployment scripts with verbose=false and writeToJson=false for tests
         deployImplementation = new DeployImplementation();
         deployImplementation.setVerbose(false);
+        deployImplementation.setWriteToJson(false);
 
         deployFactory = new DeployFactory();
         deployFactory.setVerbose(false);
+        deployFactory.setWriteToJson(false);
 
         // Deploy implementation
         vm.startPrank(deployer);

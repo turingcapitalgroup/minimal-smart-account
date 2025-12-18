@@ -45,6 +45,7 @@ abstract contract DeploymentManager is Script {
     struct DeploymentOutput {
         uint256 chainId;
         string network;
+        string accountId;
         uint256 timestamp;
         address implementation;
         address factory;
@@ -52,16 +53,25 @@ abstract contract DeploymentManager is Script {
     }
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
-    /*                      VERBOSE LOGGING                       */
+    /*                      SCRIPT OPTIONS                        */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
     /// @notice Controls verbose logging (default: true for scripts, false for tests)
     bool public verbose = true;
 
+    /// @notice Controls whether to write deployment output to JSON (default: true for scripts, false for tests)
+    bool public writeToJson = true;
+
     /// @notice Sets the verbose logging flag
     /// @param _verbose Whether to enable verbose logging
     function setVerbose(bool _verbose) public {
         verbose = _verbose;
+    }
+
+    /// @notice Sets the writeToJson flag
+    /// @param _writeToJson Whether to write deployment output to JSON files
+    function setWriteToJson(bool _writeToJson) public {
+        writeToJson = _writeToJson;
     }
 
     /// @notice Log a message (only if verbose)
@@ -145,17 +155,26 @@ abstract contract DeploymentManager is Script {
     /*                      OUTPUT WRITING                        */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
-    /// @notice Reads existing deployment output for a network
+    /// @notice Reads existing deployment output for a network and accountId
     /// @param network The network name
+    /// @param accountId The account identifier
     /// @return output The deployment output (zeroed if file doesn't exist)
-    function readDeploymentOutput(string memory network) internal view returns (DeploymentOutput memory output) {
+    function readDeploymentOutput(
+        string memory network,
+        string memory accountId
+    )
+        internal
+        view
+        returns (DeploymentOutput memory output)
+    {
         string memory root = vm.projectRoot();
-        string memory path = string.concat(root, "/deployments/output/", network, "/addresses.json");
+        string memory path = string.concat(root, "/deployments/output/", network, "/", accountId, ".json");
 
         try vm.readFile(path) returns (string memory json) {
             if (bytes(json).length > 0) {
                 output.chainId = vm.parseJsonUint(json, ".chainId");
                 output.network = vm.parseJsonString(json, ".network");
+                output.accountId = vm.parseJsonString(json, ".accountId");
                 output.timestamp = vm.parseJsonUint(json, ".timestamp");
                 output.implementation = vm.parseJsonAddress(json, ".contracts.implementation");
                 output.factory = vm.parseJsonAddress(json, ".contracts.factory");
@@ -166,13 +185,16 @@ abstract contract DeploymentManager is Script {
         }
     }
 
-    /// @notice Writes deployment output to JSON file
+    /// @notice Writes deployment output to JSON file (only if writeToJson is true)
+    /// @dev File path: deployments/output/{network}/{accountId}.json
     /// @param network The network name
     /// @param output The deployment output to write
     function writeDeploymentOutput(string memory network, DeploymentOutput memory output) internal {
+        if (!writeToJson) return;
+
         string memory root = vm.projectRoot();
         string memory dirPath = string.concat(root, "/deployments/output/", network);
-        string memory filePath = string.concat(dirPath, "/addresses.json");
+        string memory filePath = string.concat(dirPath, "/", output.accountId, ".json");
 
         // Create directory if it doesn't exist
         vm.createDir(dirPath, true);
@@ -185,6 +207,9 @@ abstract contract DeploymentManager is Script {
             ",\n",
             '  "network": "',
             output.network,
+            '",\n',
+            '  "accountId": "',
+            output.accountId,
             '",\n',
             '  "timestamp": ',
             vm.toString(output.timestamp),
@@ -206,12 +231,22 @@ abstract contract DeploymentManager is Script {
         vm.writeFile(filePath, json);
     }
 
-    /// @notice Updates a single contract address in the deployment output
+    /// @notice Updates a single contract address in the deployment output (only if writeToJson is true)
     /// @param network The network name
+    /// @param accountId The account identifier
     /// @param contractName The contract name (implementation, factory, or proxy)
     /// @param contractAddress The deployed address
-    function writeContractAddress(string memory network, string memory contractName, address contractAddress) internal {
-        DeploymentOutput memory output = readDeploymentOutput(network);
+    function writeContractAddress(
+        string memory network,
+        string memory accountId,
+        string memory contractName,
+        address contractAddress
+    )
+        internal
+    {
+        if (!writeToJson) return;
+
+        DeploymentOutput memory output = readDeploymentOutput(network, accountId);
 
         // Update the specific field
         if (keccak256(bytes(contractName)) == keccak256("implementation")) {
@@ -225,6 +260,7 @@ abstract contract DeploymentManager is Script {
         // Update metadata
         output.chainId = block.chainid;
         output.network = network;
+        output.accountId = accountId;
         output.timestamp = block.timestamp;
 
         writeDeploymentOutput(network, output);

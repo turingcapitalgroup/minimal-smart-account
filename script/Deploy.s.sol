@@ -43,6 +43,7 @@ contract DeployAll is DeploymentManager {
         output = DeploymentOutput({
             chainId: block.chainid,
             network: network,
+            accountId: config.accountId,
             timestamp: block.timestamp,
             implementation: implementation,
             factory: factory,
@@ -78,6 +79,7 @@ contract DeployAll is DeploymentManager {
         output = DeploymentOutput({
             chainId: block.chainid,
             network: "test",
+            accountId: config.accountId,
             timestamp: block.timestamp,
             implementation: implementation,
             factory: factory,
@@ -104,7 +106,8 @@ contract DeployImplementation is DeploymentManager {
 
         _log("Implementation deployed at:", implementation);
 
-        writeContractAddress(network, "implementation", implementation);
+        // Note: Implementation deployments don't have accountId context
+        // They are shared across all accounts on the network
     }
 
     /// @notice Deploy implementation (for testing)
@@ -132,7 +135,8 @@ contract DeployFactory is DeploymentManager {
 
         _log("Factory deployed at:", factory);
 
-        writeContractAddress(network, "factory", factory);
+        // Note: Factory deployments don't have accountId context
+        // They are shared across all accounts on the network
     }
 
     /// @notice Deploy factory with salt (for testing)
@@ -148,7 +152,7 @@ contract DeployProxy is DeploymentManager {
     function run() external returns (address proxy) {
         string memory network = getNetworkName();
         NetworkConfig memory config = readNetworkConfig(network);
-        DeploymentOutput memory existing = readDeploymentOutput(network);
+        DeploymentOutput memory existing = readDeploymentOutput(network, config.accountId);
 
         require(existing.factory != address(0), "Factory not deployed. Run deploy-all first.");
         require(existing.implementation != address(0), "Implementation not deployed. Run deploy-all first.");
@@ -179,7 +183,7 @@ contract DeployProxy is DeploymentManager {
         _log("Proxy deployed at:", proxy);
         require(proxy == predictedAddress, "Address mismatch!");
 
-        writeContractAddress(network, "proxy", proxy);
+        writeContractAddress(network, config.accountId, "proxy", proxy);
     }
 
     /// @notice Deploy proxy with custom parameters (for testing)
@@ -247,6 +251,7 @@ contract DeployMainnet is DeploymentManager {
         DeploymentOutput memory output = DeploymentOutput({
             chainId: block.chainid,
             network: chainConfig.name,
+            accountId: config.accountId,
             timestamp: block.timestamp,
             implementation: implementation,
             factory: factory,

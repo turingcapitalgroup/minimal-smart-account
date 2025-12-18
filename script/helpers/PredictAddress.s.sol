@@ -11,7 +11,7 @@ contract PredictProxyAddress is DeploymentManager {
     function run() external view {
         string memory network = getNetworkName();
         NetworkConfig memory config = readNetworkConfig(network);
-        DeploymentOutput memory existing = readDeploymentOutput(network);
+        DeploymentOutput memory existing = readDeploymentOutput(network, config.accountId);
 
         require(existing.factory != address(0), "Factory not deployed. Run deploy-all first.");
 
