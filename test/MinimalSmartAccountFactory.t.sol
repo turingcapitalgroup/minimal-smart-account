@@ -19,7 +19,6 @@ contract MinimalSmartAccountFactoryTest is Test {
     MockRegistry registry;
 
     address owner = address(0xABCD);
-    address admin = address(0xBEEF);
 
     function setUp() public {
         factory = new MinimalSmartAccountFactory();
@@ -37,11 +36,9 @@ contract MinimalSmartAccountFactoryTest is Test {
 
         address predicted = factory.predictDeterministicAddress(salt);
 
-        address proxy =
-            factory.deployDeterministic(address(implementation), admin, salt, owner, registry, "test-account");
+        address proxy = factory.deployDeterministic(address(implementation), salt, owner, registry, "test-account");
 
         assertEq(proxy, predicted, "Address mismatch");
-        assertEq(factory.adminOf(proxy), admin, "Admin mismatch");
 
         // Verify initialization
         MinimalSmartAccount account = MinimalSmartAccount(payable(proxy));
@@ -52,12 +49,11 @@ contract MinimalSmartAccountFactoryTest is Test {
     function testDeployDeterministicSameAddressWithSameSalt() public {
         bytes32 salt = _createSalt(2);
 
-        address proxy1 =
-            factory.deployDeterministic(address(implementation), admin, salt, owner, registry, "test-account-1");
+        address proxy1 = factory.deployDeterministic(address(implementation), salt, owner, registry, "test-account-1");
 
         // Deploying with same salt should fail
         vm.expectRevert(MinimalSmartAccountFactory.DeploymentFailed.selector);
-        factory.deployDeterministic(address(implementation), admin, salt, owner, registry, "test-account-2");
+        factory.deployDeterministic(address(implementation), salt, owner, registry, "test-account-2");
 
         // Verify first deployment worked
         assertEq(MinimalSmartAccount(payable(proxy1)).accountId(), "test-account-1");
@@ -67,10 +63,8 @@ contract MinimalSmartAccountFactoryTest is Test {
         bytes32 salt1 = _createSalt(3);
         bytes32 salt2 = _createSalt(4);
 
-        address proxy1 =
-            factory.deployDeterministic(address(implementation), admin, salt1, owner, registry, "test-account-1");
-        address proxy2 =
-            factory.deployDeterministic(address(implementation), admin, salt2, owner, registry, "test-account-2");
+        address proxy1 = factory.deployDeterministic(address(implementation), salt1, owner, registry, "test-account-1");
+        address proxy2 = factory.deployDeterministic(address(implementation), salt2, owner, registry, "test-account-2");
 
         assertTrue(proxy1 != proxy2, "Addresses should be different");
     }
@@ -80,68 +74,16 @@ contract MinimalSmartAccountFactoryTest is Test {
         bytes32 badSalt = bytes32(uint256(uint160(address(0xDEAD))) << 96);
 
         vm.expectRevert(MinimalSmartAccountFactory.SaltDoesNotStartWithCaller.selector);
-        factory.deployDeterministic(address(implementation), admin, badSalt, owner, registry, "test-account");
+        factory.deployDeterministic(address(implementation), badSalt, owner, registry, "test-account");
     }
 
     function testSaltCanStartWithZeroAddress() public {
         // Salt that starts with zero address (low 96 bits only) is allowed
         bytes32 zeroSalt = bytes32(uint256(1));
 
-        address proxy =
-            factory.deployDeterministic(address(implementation), admin, zeroSalt, owner, registry, "test-account");
+        address proxy = factory.deployDeterministic(address(implementation), zeroSalt, owner, registry, "test-account");
 
         assertTrue(proxy != address(0), "Deployment should succeed");
-    }
-
-    function testChangeAdmin() public {
-        bytes32 salt = _createSalt(5);
-        address proxy =
-            factory.deployDeterministic(address(implementation), address(this), salt, owner, registry, "test-account");
-
-        assertEq(factory.adminOf(proxy), address(this));
-
-        address newAdmin = address(0x1234);
-        factory.changeAdmin(proxy, newAdmin);
-
-        assertEq(factory.adminOf(proxy), newAdmin);
-    }
-
-    function testChangeAdminUnauthorized() public {
-        bytes32 salt = _createSalt(6);
-        address proxy =
-            factory.deployDeterministic(address(implementation), admin, salt, owner, registry, "test-account");
-
-        // Try to change admin from non-admin account
-        vm.expectRevert(MinimalSmartAccountFactory.Unauthorized.selector);
-        factory.changeAdmin(proxy, address(0x1234));
-    }
-
-    function testUpgrade() public {
-        bytes32 salt = _createSalt(7);
-        address proxy =
-            factory.deployDeterministic(address(implementation), address(this), salt, owner, registry, "test-account");
-
-        // Deploy new implementation
-        MinimalSmartAccount newImpl = new MinimalSmartAccount();
-
-        // Upgrade
-        factory.upgrade(proxy, address(newImpl));
-
-        // Verify proxy still works
-        MinimalSmartAccount account = MinimalSmartAccount(payable(proxy));
-        assertEq(account.accountId(), "test-account");
-    }
-
-    function testUpgradeUnauthorized() public {
-        bytes32 salt = _createSalt(8);
-        address proxy =
-            factory.deployDeterministic(address(implementation), admin, salt, owner, registry, "test-account");
-
-        MinimalSmartAccount newImpl = new MinimalSmartAccount();
-
-        // Try to upgrade from non-admin account
-        vm.expectRevert(MinimalSmartAccountFactory.Unauthorized.selector);
-        factory.upgrade(proxy, address(newImpl));
     }
 
     function testPredictDeterministicAddress() public view {

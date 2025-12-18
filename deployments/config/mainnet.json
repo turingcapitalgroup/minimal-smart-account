@@ -1,0 +1,95 @@
+{
+  "deployment": {
+    "type": "multichain",
+    "salt": "0x0000000000000000000000000000000000000000000000000000000000000001"
+  },
+  "chains": [
+    {
+      "name": "mainnet",
+      "chainId": 1,
+      "rpcEnvVar": "ETH_RPC_URL",
+      "etherscanApiKeyEnvVar": "ETHERSCAN_API_KEY",
+      "verify": true,
+      "external": {
+        "registry": ""
+      }
+    },
+    {
+      "name": "arbitrum",
+      "chainId": 42161,
+      "rpcEnvVar": "ARBITRUM_RPC_URL",
+      "etherscanApiKeyEnvVar": "ARBISCAN_API_KEY",
+      "verify": true,
+      "external": {
+        "registry": ""
+      }
+    },
+    {
+      "name": "optimism",
+      "chainId": 10,
+      "rpcEnvVar": "OPTIMISM_RPC_URL",
+      "etherscanApiKeyEnvVar": "OPTIMISM_ETHERSCAN_API_KEY",
+      "verify": true,
+      "external": {
+        "registry": ""
+      }
+    },
+    {
+      "name": "base",
+      "chainId": 8453,
+      "rpcEnvVar": "BASE_RPC_URL",
+      "etherscanApiKeyEnvVar": "BASESCAN_API_KEY",
+      "verify": true,
+      "external": {
+        "registry": ""
+      }
+    },
+    {
+      "name": "polygon",
+      "chainId": 137,
+      "rpcEnvVar": "POLYGON_RPC_URL",
+      "etherscanApiKeyEnvVar": "POLYGONSCAN_API_KEY",
+      "verify": true,
+      "external": {
+        "registry": ""
+      }
+    },
+    {
+      "name": "avalanche",
+      "chainId": 43114,
+      "rpcEnvVar": "AVALANCHE_RPC_URL",
+      "etherscanApiKeyEnvVar": "SNOWTRACE_API_KEY",
+      "verify": true,
+      "external": {
+        "registry": ""
+      }
+    },
+    {
+      "name": "bnb",
+      "chainId": 56,
+      "rpcEnvVar": "BNB_RPC_URL",
+      "etherscanApiKeyEnvVar": "BSCSCAN_API_KEY",
+      "verify": true,
+      "external": {
+        "registry": ""
+      }
+    },
+    {
+      "name": "unichain",
+      "chainId": 130,
+      "rpcEnvVar": "UNICHAIN_RPC_URL",
+      "etherscanApiKeyEnvVar": "UNICHAIN_API_KEY",
+      "verify": true,
+      "external": {
+        "registry": ""
+      }
+    }
+  ],
+  "roles": {
+    "owner": "",
+    "deployer": ""
+  },
+  "account": {
+    "accountId": "minimal-smart-account.v1"
+  }
+}
