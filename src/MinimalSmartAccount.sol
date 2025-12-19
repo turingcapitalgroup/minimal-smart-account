@@ -160,7 +160,7 @@ contract MinimalSmartAccount is IMinimalSmartAccount, Initializable, UUPSUpgrade
             // Extract selector and validate account-specific permission
             bytes4 _functionSig = bytes4(executions[_i].callData);
             bytes memory _params = executions[_i].callData[4:];
-            _registry.authorizeAdapterCall(executions[_i].target, _functionSig, _params);
+            _registry.authorizeCall(executions[_i].target, _functionSig, _params);
 
             // Execute and store result
             result[_i] = executions[_i].target.callContract(executions[_i].value, executions[_i].callData);
@@ -190,7 +190,7 @@ contract MinimalSmartAccount is IMinimalSmartAccount, Initializable, UUPSUpgrade
             // Extract selector and validate account-specific permission
             bytes4 _functionSig = bytes4(executions[_i].callData);
             bytes memory _params = executions[_i].callData[4:];
-            _registry.authorizeAdapterCall(executions[_i].target, _functionSig, _params);
+            _registry.authorizeCall(executions[_i].target, _functionSig, _params);
 
             // Execute and store result
             (bool _success,, bytes memory _callResult) = executions[_i].target

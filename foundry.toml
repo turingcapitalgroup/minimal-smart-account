@@ -26,7 +26,7 @@ wrap_comments = true
 sort_imports = true
 
 [lint]
-exclude_lints = ["mixed-case-function"]
+exclude_lints = ["mixed-case-function","unsafe-cheatcode"]
 
 [soldeer]
 remappings_generated = false
