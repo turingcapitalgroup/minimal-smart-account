@@ -25,22 +25,18 @@ contract MockRegistry is IRegistry {
         shouldRevert = v;
     }
 
-    function authorizeAdapterCall(address target, bytes4 selector, bytes calldata) external view override {
+    function authorizeCall(address target, bytes4 selector, bytes calldata) external view override {
         if (shouldRevert) revert("unauthorized");
         if (!allowed[msg.sender][target][selector]) revert("unauthorized");
     }
 
-    function isAdapterSelectorAllowed(
-        address adapter,
-        address target,
-        bytes4 selector
-    )
+    function isSelectorAllowed(address executor, address target, bytes4 selector)
         external
         view
         override
         returns (bool)
     {
-        return allowed[adapter][target][selector];
+        return allowed[executor][target][selector];
     }
 
     function allow(address adapter, address target, bytes4 selector, bool value) external {

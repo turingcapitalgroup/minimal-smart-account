@@ -223,14 +223,14 @@ The smart account validates all executions through an external registry contract
 
 ```solidity
 interface IRegistry {
-    function authorizeAdapterCall(
+    function authorizeCall(
         address target,
         bytes4 selector,
         bytes calldata params
     ) external;
 
-    function isAdapterSelectorAllowed(
-        address adapter,
+    function isSelectorAllowed(
+        address executor,
         address target,
         bytes4 selector
     ) external view returns (bool);
