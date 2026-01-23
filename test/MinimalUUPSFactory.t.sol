@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import { IRegistry, MinimalSmartAccount } from "../src/MinimalSmartAccount.sol";
 import { DeploymentBaseTest } from "./base/DeploymentBaseTest.t.sol";
-import { MinimalUUPSFactory } from "factory/MinimalUUPSFactory.sol";
+import { MinimalUUPSFactory } from "minimal-uups-factory/MinimalUUPSFactory.sol";
 
 contract MinimalUUPSFactoryTest is DeploymentBaseTest {
     function testDeployDeterministic() public {

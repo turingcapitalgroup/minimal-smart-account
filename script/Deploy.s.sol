@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import { MinimalSmartAccount } from "../src/MinimalSmartAccount.sol";
 import { IRegistry } from "../src/interfaces/IRegistry.sol";
 import { DeploymentManager } from "./utils/DeploymentManager.sol";
-import { MinimalUUPSFactory } from "factory/MinimalUUPSFactory.sol";
+import { MinimalUUPSFactory } from "minimal-uups-factory/MinimalUUPSFactory.sol";
 
 /// @title DeployAll
 /// @notice Deploys all contracts (implementation + factory) for a single chain

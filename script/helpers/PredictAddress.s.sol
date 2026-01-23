@@ -2,8 +2,8 @@
 pragma solidity ^0.8.20;
 
 import { DeploymentManager } from "../utils/DeploymentManager.sol";
-import { MinimalUUPSFactory } from "factory/MinimalUUPSFactory.sol";
 import { console } from "forge-std/console.sol";
+import { MinimalUUPSFactory } from "minimal-uups-factory/MinimalUUPSFactory.sol";
 
 /// @title PredictProxyAddress
 /// @notice Predicts the proxy address for a single-chain deployment without deploying

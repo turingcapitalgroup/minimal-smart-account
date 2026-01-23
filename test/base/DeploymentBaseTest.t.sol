@@ -6,7 +6,7 @@ import { DeploymentManager } from "../../script/utils/DeploymentManager.sol";
 import { MinimalSmartAccount } from "../../src/MinimalSmartAccount.sol";
 import { IRegistry } from "../../src/interfaces/IRegistry.sol";
 import { BaseTest, MockRegistry } from "./BaseTest.t.sol";
-import { MinimalUUPSFactory } from "factory/MinimalUUPSFactory.sol";
+import { MinimalUUPSFactory } from "minimal-uups-factory/MinimalUUPSFactory.sol";
 
 /// @title DeploymentBaseTest
 /// @notice Base test contract that uses deployment scripts for setup
