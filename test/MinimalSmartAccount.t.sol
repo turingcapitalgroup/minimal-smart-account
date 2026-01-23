@@ -543,6 +543,8 @@ contract MinimalSmartAccountTest is Test {
 
     function testReceiveEther() public {
         vm.deal(address(this), 1 ether);
+        vm.expectEmit(true, false, false, true);
+        emit MinimalSmartAccount.EtherReceived(address(this), 1 ether);
         (bool success,) = address(minimal).call{ value: 1 ether }("");
         assertTrue(success);
         assertEq(address(minimal).balance, 1 ether);

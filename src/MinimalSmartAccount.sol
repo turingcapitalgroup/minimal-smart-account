@@ -227,7 +227,9 @@ contract MinimalSmartAccount is IMinimalSmartAccount, Initializable, UUPSUpgrade
 
     /// @notice Allows the contract to receive Ether
     /// @dev Emits EtherReceived event when Ether is received
-    receive() external payable { }
+    receive() external payable {
+        emit EtherReceived(msg.sender, msg.value);
+    }
 
     /// @notice ERC721 token receiver callback
     /// @dev Handles the receipt of an ERC721 token
