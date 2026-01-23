@@ -17,7 +17,6 @@ A minimal, gas-efficient smart account implementation with batch execution capab
 ```
 src/
 ├── MinimalSmartAccount.sol        # Main smart account implementation
-├── MinimalSmartAccountFactory.sol # Factory for deterministic deployments
 ├── interfaces/
 │   ├── IMinimalSmartAccount.sol   # Account interface
 │   └── IRegistry.sol              # Registry interface
@@ -25,6 +24,9 @@ src/
 │   ├── ExecutionLib.sol           # Execution decoding utilities
 │   └── ModeLib.sol                # Mode encoding/decoding
 └── vendor/                        # Vendored dependencies
+
+dependencies/
+└── factory-1.0/                   # MinimalUUPSFactory (soldeer dependency)
 ```
 
 ## Installation
@@ -255,7 +257,7 @@ interface IRegistry {
 - All executions are validated through the registry before execution
 - Only addresses with `EXECUTOR_ROLE` can call `execute()`
 - Only the owner can authorize upgrades
-- The factory uses CREATE2 with caller-prefixed salts to prevent front-running
+- The factory uses CREATE2 for deterministic proxy deployments
 
 ## Gas Optimization
 

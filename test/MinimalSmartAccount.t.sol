@@ -165,6 +165,7 @@ contract MinimalSmartAccountTest is Test {
         assertEq(minimal.accountId(), "keyrock.minimal.v1");
         assertEq(minimal.owner(), owner);
         assertEq(minimal.nonce(), 0);
+        assertEq(address(minimal.registry()), address(registry));
     }
 
     function testInitializeCannotReinitialize() public {
@@ -182,6 +183,13 @@ contract MinimalSmartAccountTest is Test {
         MinimalSmartAccount newAccount = new MinimalSmartAccount();
         newAccount.initialize(owner, registry, "");
         assertEq(newAccount.accountId(), "");
+    }
+
+    function testRegistryGetter() public {
+        MockRegistry newRegistry = new MockRegistry();
+        MinimalSmartAccount newAccount = new MinimalSmartAccount();
+        newAccount.initialize(owner, newRegistry, "test.account.v1");
+        assertEq(address(newAccount.registry()), address(newRegistry));
     }
 
     /* ///////////////////////////////////////////////////////////////
@@ -535,6 +543,8 @@ contract MinimalSmartAccountTest is Test {
 
     function testReceiveEther() public {
         vm.deal(address(this), 1 ether);
+        vm.expectEmit(true, false, false, true);
+        emit MinimalSmartAccount.EtherReceived(address(this), 1 ether);
         (bool success,) = address(minimal).call{ value: 1 ether }("");
         assertTrue(success);
         assertEq(address(minimal).balance, 1 ether);
