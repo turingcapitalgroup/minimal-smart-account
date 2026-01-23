@@ -2,9 +2,9 @@
 pragma solidity ^0.8.20;
 
 import { MinimalSmartAccount } from "../src/MinimalSmartAccount.sol";
-import { MinimalSmartAccountFactory } from "../src/MinimalSmartAccountFactory.sol";
 import { IRegistry } from "../src/interfaces/IRegistry.sol";
 import { DeploymentManager } from "./utils/DeploymentManager.sol";
+import { MinimalUUPSFactory } from "factory/MinimalUUPSFactory.sol";
 
 /// @title DeployAll
 /// @notice Deploys all contracts (implementation + factory) for a single chain
@@ -30,7 +30,7 @@ contract DeployAll is DeploymentManager {
         address factory;
         if (config.factory == address(0)) {
             bytes32 salt = vm.parseBytes32(config.salt);
-            factory = address(new MinimalSmartAccountFactory{ salt: salt }());
+            factory = address(new MinimalUUPSFactory{ salt: salt }());
             _log("Factory deployed at:", factory);
         } else {
             factory = config.factory;
@@ -69,7 +69,7 @@ contract DeployAll is DeploymentManager {
         address factory;
         if (config.factory == address(0)) {
             bytes32 salt = vm.parseBytes32(config.salt);
-            factory = address(new MinimalSmartAccountFactory{ salt: salt }());
+            factory = address(new MinimalUUPSFactory{ salt: salt }());
             _log("Factory deployed at:", factory);
         } else {
             factory = config.factory;
@@ -118,7 +118,7 @@ contract DeployImplementation is DeploymentManager {
 }
 
 /// @title DeployFactory
-/// @notice Deploys only the MinimalSmartAccountFactory
+/// @notice Deploys only the MinimalUUPSFactory
 contract DeployFactory is DeploymentManager {
     function run() external returns (address factory) {
         string memory network = getNetworkName();
@@ -130,7 +130,7 @@ contract DeployFactory is DeploymentManager {
 
         vm.startBroadcast();
         bytes32 salt = vm.parseBytes32(config.salt);
-        factory = address(new MinimalSmartAccountFactory{ salt: salt }());
+        factory = address(new MinimalUUPSFactory{ salt: salt }());
         vm.stopBroadcast();
 
         _log("Factory deployed at:", factory);
@@ -141,7 +141,7 @@ contract DeployFactory is DeploymentManager {
 
     /// @notice Deploy factory with salt (for testing)
     function deploy(bytes32 salt) external returns (address factory) {
-        factory = address(new MinimalSmartAccountFactory{ salt: salt }());
+        factory = address(new MinimalUUPSFactory{ salt: salt }());
         _log("Factory deployed at:", factory);
     }
 }
@@ -164,20 +164,21 @@ contract DeployProxy is DeploymentManager {
         _log("Implementation:", existing.implementation);
         _log("Owner:", config.owner);
 
-        MinimalSmartAccountFactory factory = MinimalSmartAccountFactory(existing.factory);
+        MinimalUUPSFactory factory = MinimalUUPSFactory(existing.factory);
 
         // Compute full salt
         bytes32 salt = vm.parseBytes32(config.salt);
         bytes32 fullSalt = computeFullSalt(config.deployer, salt);
 
         // Predict address before deployment
-        address predictedAddress = factory.predictDeterministicAddress(fullSalt);
+        address predictedAddress = factory.predictDeterministicAddress(existing.implementation, fullSalt);
         _log("Predicted proxy address:", predictedAddress);
 
         vm.startBroadcast();
-        proxy = factory.deployDeterministic(
-            existing.implementation, fullSalt, config.owner, IRegistry(config.registry), config.accountId
+        bytes memory initData = abi.encodeCall(
+            MinimalSmartAccount.initialize, (config.owner, IRegistry(config.registry), config.accountId)
         );
+        proxy = factory.deployDeterministicAndCall(existing.implementation, fullSalt, initData);
         vm.stopBroadcast();
 
         _log("Proxy deployed at:", proxy);
@@ -198,8 +199,9 @@ contract DeployProxy is DeploymentManager {
         external
         returns (address proxy)
     {
-        MinimalSmartAccountFactory factory = MinimalSmartAccountFactory(factoryAddr);
-        proxy = factory.deployDeterministic(implementation, salt, owner, registry, accountId);
+        MinimalUUPSFactory factory = MinimalUUPSFactory(factoryAddr);
+        bytes memory initData = abi.encodeCall(MinimalSmartAccount.initialize, (owner, registry, accountId));
+        proxy = factory.deployDeterministicAndCall(implementation, salt, initData);
         _log("Proxy deployed at:", proxy);
     }
 }
@@ -229,7 +231,7 @@ contract DeployMainnet is DeploymentManager {
         address factory;
         bytes32 salt = vm.parseBytes32(config.salt);
         if (chainConfig.factory == address(0)) {
-            factory = address(new MinimalSmartAccountFactory{ salt: salt }());
+            factory = address(new MinimalUUPSFactory{ salt: salt }());
             _log("Factory deployed at:", factory);
         } else {
             factory = chainConfig.factory;
@@ -237,12 +239,13 @@ contract DeployMainnet is DeploymentManager {
         }
 
         // Deploy proxy
-        MinimalSmartAccountFactory factoryContract = MinimalSmartAccountFactory(factory);
+        MinimalUUPSFactory factoryContract = MinimalUUPSFactory(factory);
         bytes32 fullSalt = computeFullSalt(config.deployer, salt);
 
-        address proxy = factoryContract.deployDeterministic(
-            implementation, fullSalt, config.owner, IRegistry(chainConfig.registry), config.accountId
+        bytes memory initData = abi.encodeCall(
+            MinimalSmartAccount.initialize, (config.owner, IRegistry(chainConfig.registry), config.accountId)
         );
+        address proxy = factoryContract.deployDeterministicAndCall(implementation, fullSalt, initData);
         _log("Proxy deployed at:", proxy);
 
         vm.stopBroadcast();

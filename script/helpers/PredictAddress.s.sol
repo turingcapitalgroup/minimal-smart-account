@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { MinimalSmartAccountFactory } from "../../src/MinimalSmartAccountFactory.sol";
 import { DeploymentManager } from "../utils/DeploymentManager.sol";
+import { MinimalUUPSFactory } from "factory/MinimalUUPSFactory.sol";
 import { console } from "forge-std/console.sol";
 
 /// @title PredictProxyAddress
@@ -20,13 +20,13 @@ contract PredictProxyAddress is DeploymentManager {
         console.log("Chain ID:", block.chainid);
         console.log("Factory:", existing.factory);
 
-        MinimalSmartAccountFactory factory = MinimalSmartAccountFactory(existing.factory);
+        MinimalUUPSFactory factory = MinimalUUPSFactory(existing.factory);
 
         // Compute full salt
         bytes32 salt = vm.parseBytes32(config.salt);
         bytes32 fullSalt = computeFullSalt(config.deployer, salt);
 
-        address predictedAddress = factory.predictDeterministicAddress(fullSalt);
+        address predictedAddress = factory.predictDeterministicAddress(existing.implementation, fullSalt);
 
         console.log("\n=== Prediction Result ===");
         console.log("Deployer:", config.deployer);
@@ -155,7 +155,7 @@ contract PredictFactoryAddress is DeploymentManager {
 
         // Factory is deployed with CREATE2 from deployer address
         // The predicted address depends on deployer nonce for CREATE, or salt for CREATE2
-        bytes32 initCodeHash = keccak256(type(MinimalSmartAccountFactory).creationCode);
+        bytes32 initCodeHash = keccak256(type(MinimalUUPSFactory).creationCode);
 
         address predictedFactory =
             address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), config.deployer, salt, initCodeHash)))));
