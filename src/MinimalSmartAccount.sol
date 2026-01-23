@@ -304,4 +304,10 @@ contract MinimalSmartAccount is IMinimalSmartAccount, Initializable, UUPSUpgrade
         MinimalAccountStorage storage $ = _getMinimalAccountStorage();
         return $.accountId;
     }
+
+    /// @inheritdoc IMinimalSmartAccount
+    function registry() public view returns (IRegistry) {
+        MinimalAccountStorage storage $ = _getMinimalAccountStorage();
+        return $.registry;
+    }
 }
