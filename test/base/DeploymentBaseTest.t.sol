@@ -4,9 +4,9 @@ pragma solidity ^0.8.20;
 import { DeployAll, DeployFactory, DeployImplementation } from "../../script/Deploy.s.sol";
 import { DeploymentManager } from "../../script/utils/DeploymentManager.sol";
 import { MinimalSmartAccount } from "../../src/MinimalSmartAccount.sol";
-import { MinimalSmartAccountFactory } from "../../src/MinimalSmartAccountFactory.sol";
 import { IRegistry } from "../../src/interfaces/IRegistry.sol";
 import { BaseTest, MockRegistry } from "./BaseTest.t.sol";
+import { MinimalUUPSFactory } from "minimal-uups-factory/MinimalUUPSFactory.sol";
 
 /// @title DeploymentBaseTest
 /// @notice Base test contract that uses deployment scripts for setup
@@ -25,7 +25,7 @@ abstract contract DeploymentBaseTest is BaseTest {
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
     MinimalSmartAccount public implementation;
-    MinimalSmartAccountFactory public factory;
+    MinimalUUPSFactory public factory;
     MinimalSmartAccount public account;
     MockRegistry public registry;
 
@@ -79,15 +79,15 @@ abstract contract DeploymentBaseTest is BaseTest {
         vm.stopPrank();
 
         implementation = MinimalSmartAccount(payable(output.implementation));
-        factory = MinimalSmartAccountFactory(output.factory);
+        factory = MinimalUUPSFactory(output.factory);
 
-        // Deploy proxy - must call factory directly from deployer because factory checks msg.sender
+        // Deploy proxy
         bytes32 fullSalt = _createSalt(deployer, 1);
+        bytes memory initData =
+            abi.encodeCall(MinimalSmartAccount.initialize, (owner, IRegistry(address(registry)), DEFAULT_ACCOUNT_ID));
 
         vm.startPrank(deployer);
-        address proxyAddr = factory.deployDeterministic(
-            address(implementation), fullSalt, owner, IRegistry(address(registry)), DEFAULT_ACCOUNT_ID
-        );
+        address proxyAddr = factory.deployDeterministicAndCall(address(implementation), fullSalt, initData);
         vm.stopPrank();
 
         account = MinimalSmartAccount(payable(proxyAddr));
@@ -117,7 +117,7 @@ abstract contract DeploymentBaseTest is BaseTest {
         vm.startPrank(deployer);
         address factoryAddr = deployFactory.deploy(DEFAULT_SALT);
         vm.stopPrank();
-        factory = MinimalSmartAccountFactory(factoryAddr);
+        factory = MinimalUUPSFactory(factoryAddr);
     }
 
     /// @notice Deploy a new proxy with custom parameters
@@ -125,11 +125,11 @@ abstract contract DeploymentBaseTest is BaseTest {
     /// @param salt The unique salt identifier (will be combined with deployer address)
     function _deployNewProxy(address _owner, bytes32 salt) internal returns (MinimalSmartAccount) {
         bytes32 fullSalt = _createSalt(deployer, uint96(uint256(salt)));
+        bytes memory initData =
+            abi.encodeCall(MinimalSmartAccount.initialize, (_owner, IRegistry(address(registry)), DEFAULT_ACCOUNT_ID));
 
         vm.startPrank(deployer);
-        address proxyAddr = factory.deployDeterministic(
-            address(implementation), fullSalt, _owner, IRegistry(address(registry)), DEFAULT_ACCOUNT_ID
-        );
+        address proxyAddr = factory.deployDeterministicAndCall(address(implementation), fullSalt, initData);
         vm.stopPrank();
 
         return MinimalSmartAccount(payable(proxyAddr));

@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 // Internal Libraries
 import { CallType, ExecType, ModeCode } from "../libraries/ModeLib.sol";
+import { IRegistry } from "./IRegistry.sol";
 
 /* ///////////////////////////////////////////////////////////////
                             STRUCTS
@@ -98,4 +99,10 @@ interface IMinimalSmartAccount {
      * @return nonceNumber The unique nonce of the last transaction
      */
     function nonce() external view returns (uint256 nonceNumber);
+
+    /**
+     * @notice Returns the registry contract used for authorizing calls
+     * @return registryAddress The registry contract address
+     */
+    function registry() external view returns (IRegistry registryAddress);
 }
