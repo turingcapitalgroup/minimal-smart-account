@@ -29,9 +29,6 @@ contract MinimalSmartAccount is IMinimalSmartAccount, Initializable, UUPSUpgrade
                                 ROLES
     ///////////////////////////////////////////////////////////////*/
 
-    /// @notice Admin role identifier for privileged operations
-    uint256 internal constant ADMIN_ROLE = _ROLE_0;
-
     /// @notice Executor role identifier for accounts authorized to execute transactions
     uint256 internal constant EXECUTOR_ROLE = _ROLE_1;
 
@@ -196,10 +193,21 @@ contract MinimalSmartAccount is IMinimalSmartAccount, Initializable, UUPSUpgrade
             (bool _success,, bytes memory _callResult) = executions[_i].target
                 .tryCall(executions[_i].value, type(uint256).max, type(uint16).max, executions[_i].callData);
             result[_i] = _callResult;
-            if (!_success) emit TryExecutionFailed(_i);
-            emit Executed(
-                $.nonce, msg.sender, executions[_i].target, executions[_i].callData, executions[_i].value, result[_i]
-            );
+            if (!_success) {
+                // Failed sub-executions emit `TryExecutionFailed` only — do not emit
+                // `Executed` for them so off-chain consumers can rely on `Executed` as
+                // a true "this call succeeded" signal.
+                emit TryExecutionFailed(_i);
+            } else {
+                emit Executed(
+                    $.nonce,
+                    msg.sender,
+                    executions[_i].target,
+                    executions[_i].callData,
+                    executions[_i].value,
+                    result[_i]
+                );
+            }
         }
     }
 
