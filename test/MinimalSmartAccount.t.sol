@@ -15,7 +15,10 @@ import {
     ModeLib,
     ModePayload
 } from "../src/libraries/ModeLib.sol";
-import { Test } from "forge-std/Test.sol";
+import { Initializable } from "../src/vendor/Initializable.sol";
+import { Ownable } from "../src/vendor/Ownable.sol";
+import { MinimalUUPSFactory } from "minimal-uups-factory/MinimalUUPSFactory.sol";
+import { Test, Vm } from "forge-std/Test.sol";
 
 contract MockRegistry is IRegistry {
     bool public shouldRevert;
@@ -169,7 +172,9 @@ contract MinimalSmartAccountTest is Test {
     }
 
     function testInitializeCannotReinitialize() public {
-        vm.expectRevert();
+        // Use the Solady Initializable.InvalidInitialization selector — bare expectRevert
+        // would also pass on unrelated reverts (out of gas, missing fn, etc), masking regressions.
+        vm.expectRevert(Initializable.InvalidInitialization.selector);
         minimal.initialize(address(0x1234), registry, "new.account.id");
     }
 
@@ -322,8 +327,10 @@ contract MinimalSmartAccountTest is Test {
 
         bytes memory execData = _encodeBatch(executions);
 
+        // The MockTarget.willRevert() reverts with the literal string "fail". Asserting that
+        // exact reason — bare expectRevert would also pass on unrelated reverts.
         vm.prank(executor);
-        vm.expectRevert();
+        vm.expectRevert(bytes("fail"));
         minimal.execute(ModeLib.encodeSimpleBatch(), execData);
     }
 
@@ -625,6 +632,153 @@ contract MinimalSmartAccountTest is Test {
 
     function testDoesNotSupportRandomInterface() public view {
         assertFalse(minimal.supportsInterface(0xdeadbeef));
+    }
+
+    /* ///////////////////////////////////////////////////////////////
+                    UUPS UPGRADE AUTHORIZATION TESTS
+    ///////////////////////////////////////////////////////////////*/
+
+    /// @dev Deploys a fresh MinimalSmartAccount behind a UUPS proxy and returns the proxy.
+    /// `upgradeToAndCall` requires being invoked via delegatecall (Solady UUPSUpgradeable's
+    /// `onlyProxy` guard) — calling it on the bare implementation reverts with
+    /// `UnauthorizedCallContext`. So upgrade tests must use a proxy.
+    function _deployProxiedAccount(address _owner) internal returns (MinimalSmartAccount proxied) {
+        MinimalUUPSFactory factory = new MinimalUUPSFactory();
+        MinimalSmartAccount impl = new MinimalSmartAccount();
+        bytes memory initData = abi.encodeCall(MinimalSmartAccount.initialize, (_owner, registry, "upgrade.test"));
+        address proxy = factory.deployAndCall(address(impl), initData);
+        proxied = MinimalSmartAccount(payable(proxy));
+        require(proxied.owner() == _owner, "test setup: owner not set");
+    }
+
+    /// @notice Owner can authorize an upgrade. Verifies the ERC-1967 implementation slot
+    /// actually changes — checking only behavior of the new impl would silently pass if the
+    /// upgrade no-op'd (false-positive anti-pattern).
+    function testAuthorizeUpgrade_Owner_Succeeds() public {
+        bytes32 implSlot = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
+
+        MinimalSmartAccount proxied = _deployProxiedAccount(owner);
+        address implBefore = address(uint160(uint256(vm.load(address(proxied), implSlot))));
+
+        MinimalSmartAccount newImpl = new MinimalSmartAccount();
+        require(address(newImpl) != implBefore, "test setup: new impl collides with existing");
+
+        vm.prank(owner);
+        proxied.upgradeToAndCall(address(newImpl), "");
+
+        address implAfter = address(uint160(uint256(vm.load(address(proxied), implSlot))));
+        assertEq(implAfter, address(newImpl), "ERC-1967 implementation slot did not update");
+        assertTrue(implAfter != implBefore, "implementation slot unchanged");
+    }
+
+    function testAuthorizeUpgrade_NonOwner_Reverts() public {
+        MinimalSmartAccount proxied = _deployProxiedAccount(owner);
+        MinimalSmartAccount newImpl = new MinimalSmartAccount();
+
+        vm.prank(address(0xBAD));
+        vm.expectRevert(Ownable.Unauthorized.selector);
+        proxied.upgradeToAndCall(address(newImpl), "");
+    }
+
+    function testAuthorizeUpgrade_ExecutorRole_Reverts() public {
+        // Executor role is for execute(), NOT for upgrades. Must revert with Unauthorized.
+        MinimalSmartAccount proxied = _deployProxiedAccount(owner);
+        vm.prank(owner);
+        proxied.grantRoles(executor, EXECUTOR_ROLE);
+
+        MinimalSmartAccount newImpl = new MinimalSmartAccount();
+
+        vm.prank(executor);
+        vm.expectRevert(Ownable.Unauthorized.selector);
+        proxied.upgradeToAndCall(address(newImpl), "");
+    }
+
+    function testAuthorizeUpgrade_AdminRole_Reverts() public {
+        // Even an admin-role-holder is not the owner. Solady's Ownable distinguishes owner
+        // from any role-holder.
+        MinimalSmartAccount proxied = _deployProxiedAccount(owner);
+        vm.prank(owner);
+        proxied.grantRoles(admin, ADMIN_ROLE);
+
+        MinimalSmartAccount newImpl = new MinimalSmartAccount();
+
+        vm.prank(admin);
+        vm.expectRevert(Ownable.Unauthorized.selector);
+        proxied.upgradeToAndCall(address(newImpl), "");
+    }
+
+    /* ///////////////////////////////////////////////////////////////
+                    EDGE CASE TESTS
+    ///////////////////////////////////////////////////////////////*/
+
+    /// @notice Empty batch is a valid no-op — should NOT revert and return an empty array.
+    /// Prevents a future regression where someone adds a "must have at least one execution"
+    /// guard.
+    function testExecuteEmptyBatch_ReturnsEmptyResult() public {
+        Execution[] memory executions = new Execution[](0);
+        bytes memory execData = _encodeBatch(executions);
+        uint256 nonceBefore = minimal.nonce();
+
+        vm.prank(executor);
+        bytes[] memory result = minimal.execute(ModeLib.encodeSimpleBatch(), execData);
+
+        assertEq(result.length, 0, "empty batch returned non-empty result");
+        assertEq(minimal.nonce(), nonceBefore, "nonce changed for empty batch");
+    }
+
+    function testTryExecuteEmptyBatch_ReturnsEmptyResult() public {
+        Execution[] memory executions = new Execution[](0);
+        bytes memory execData = _encodeBatch(executions);
+        uint256 nonceBefore = minimal.nonce();
+
+        vm.prank(executor);
+        bytes[] memory result = minimal.execute(ModeLib.encode(CALLTYPE_BATCH, EXECTYPE_TRY, MODE_DEFAULT, ModePayload.wrap(0x00)), execData);
+
+        assertEq(result.length, 0, "empty batch returned non-empty result");
+        assertEq(minimal.nonce(), nonceBefore, "nonce changed for empty batch");
+    }
+
+    /// @notice tryExec failures must emit `TryExecutionFailed(index)` — and the index must match
+    /// the position in the executions array. A previous version of similar tests just checked the
+    /// event topic without verifying the data field, which would silently pass on the wrong index.
+    function testTryExecuteFailure_EmitsTryExecutionFailedWithCorrectIndex() public {
+        // Three executions: success, failure, success. Failed index is 1.
+        Execution[] memory executions = new Execution[](3);
+        executions[0] =
+            Execution({ target: address(target), value: 0, callData: abi.encodeWithSelector(setValueSelector, 1) });
+        executions[1] =
+            Execution({ target: address(target), value: 0, callData: abi.encodeWithSelector(willRevertSelector) });
+        executions[2] =
+            Execution({ target: address(target), value: 0, callData: abi.encodeWithSelector(setValueSelector, 3) });
+
+        bytes memory execData = _encodeBatch(executions);
+
+        // expectEmit: check all topics + data, the second event is TryExecutionFailed(1)
+        // We expect 3 events in order: Executed(idx 0), TryExecutionFailed(idx 1), Executed(idx 2).
+        // We assert the middle one matches the failed index precisely.
+        vm.prank(executor);
+        vm.recordLogs();
+        minimal.execute(ModeLib.encode(CALLTYPE_BATCH, EXECTYPE_TRY, MODE_DEFAULT, ModePayload.wrap(0x00)), execData);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+
+        // Find the TryExecutionFailed log and assert its index field is 1.
+        bool found;
+        for (uint256 i = 0; i < entries.length; ++i) {
+            if (entries[i].topics[0] == IMinimalSmartAccount.TryExecutionFailed.selector) {
+                found = true;
+                uint256 idx = abi.decode(entries[i].data, (uint256));
+                assertEq(idx, 1, "TryExecutionFailed emitted for wrong index");
+                break;
+            }
+        }
+        assertTrue(found, "TryExecutionFailed not emitted");
+    }
+
+    /// @notice Direct getter coverage for accountId (testInitialize touches this only via the default).
+    function testAccountIdGetter() public {
+        MinimalSmartAccount fresh = new MinimalSmartAccount();
+        fresh.initialize(owner, registry, "custom.account.v42");
+        assertEq(fresh.accountId(), "custom.account.v42");
     }
 
     /* ///////////////////////////////////////////////////////////////
