@@ -13,6 +13,12 @@ docs/
 # Dotenv file
 .env
 
+# AI
+.repo-audit/
+.letta
+.trigrep
+superpowers/
+
 
 # Soldeer
 /dependencies
