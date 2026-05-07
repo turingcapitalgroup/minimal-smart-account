@@ -17,8 +17,8 @@ import {
 } from "../src/libraries/ModeLib.sol";
 import { Initializable } from "../src/vendor/Initializable.sol";
 import { Ownable } from "../src/vendor/Ownable.sol";
-import { MinimalUUPSFactory } from "minimal-uups-factory/MinimalUUPSFactory.sol";
 import { Test, Vm } from "forge-std/Test.sol";
+import { MinimalUUPSFactory } from "minimal-uups-factory/MinimalUUPSFactory.sol";
 
 contract MockRegistry is IRegistry {
     bool public shouldRevert;
@@ -732,7 +732,9 @@ contract MinimalSmartAccountTest is Test {
         uint256 nonceBefore = minimal.nonce();
 
         vm.prank(executor);
-        bytes[] memory result = minimal.execute(ModeLib.encode(CALLTYPE_BATCH, EXECTYPE_TRY, MODE_DEFAULT, ModePayload.wrap(0x00)), execData);
+        bytes[] memory result = minimal.execute(
+            ModeLib.encode(CALLTYPE_BATCH, EXECTYPE_TRY, MODE_DEFAULT, ModePayload.wrap(0x00)), execData
+        );
 
         assertEq(result.length, 0, "empty batch returned non-empty result");
         assertEq(minimal.nonce(), nonceBefore, "nonce changed for empty batch");
