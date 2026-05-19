@@ -51,4 +51,26 @@ library ExecutionLib {
     function encodeBatch(Execution[] memory executions) internal pure returns (bytes memory callData) {
         callData = abi.encode(executions);
     }
+
+    function decodeSingle(bytes calldata executionCalldata)
+        internal
+        pure
+        returns (address target, uint256 value, bytes calldata callData)
+    {
+        target = address(bytes20(executionCalldata[0:20]));
+        value = uint256(bytes32(executionCalldata[20:52]));
+        callData = executionCalldata[52:];
+    }
+
+    function encodeSingle(
+        address target,
+        uint256 value,
+        bytes memory callData
+    )
+        internal
+        pure
+        returns (bytes memory userOpCalldata)
+    {
+        userOpCalldata = abi.encodePacked(target, value, callData);
+    }
 }
